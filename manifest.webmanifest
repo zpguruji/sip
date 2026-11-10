@@ -1,6 +1,6 @@
 {
-  "name": "म्युच्युअल फंड SIP ट्रॅकर",
-  "short_name": "SIP ट्रॅकर",
+  "name": "Mutual Fund SIP Tracker",
+  "short_name": "SIP Tracker",
   "description": "वैयक्तिक म्युच्युअल फंड पोर्टफोलिओ, SIP, XIRR आणि ध्येय नियोजन",
   "lang": "mr",
   "start_url": "./index.html",
