@@ -1,5 +1,5 @@
 /* SIP Tracker service worker: offline app shell, NAV API always fresh */
-const VERSION = 'sip-tracker-v1';
+const VERSION = 'sip-tracker-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'];
 
 self.addEventListener('install', e => {

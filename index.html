@@ -3174,6 +3174,52 @@
     const renderAllBase = renderAll;
     renderAll = function () { renderAllBase(); updateTopSummary(); };
 
+    /* Android system Back button:
+       1) open dialog/menu -> close it, 2) other tab -> go Home, 3) on Home -> browser/app exits normally */
+    (function initBackButton() {
+      const MODALS = {
+        confirmDialogModal: () => closeConfirmDialog(),
+        fundModal: () => closeFundModal(),
+        txnModal: () => closeTxnModal(),
+        whatsAppReportModal: () => closeWhatsAppReportModal(),
+        pwaInstallModal: () => closePwaInstallModal()
+      };
+      const stack = [];            // history entries we pushed: 'tab' or 'modal:<id>'
+      let ignorePop = 0, fromPop = false;
+      const el = id => document.getElementById(id);
+      const isOpen = id => el(id) && !el(id).classList.contains('hidden');
+      const push = layer => { history.pushState({ sip: 1 }, ''); stack.push(layer); };
+      const dropEntry = () => { ignorePop++; history.back(); };   // UI closed it itself: remove its history entry
+
+      history.replaceState({ sip: 0 }, '');
+
+      Object.keys(MODALS).forEach(id => {
+        const m = el(id); if (!m) return;
+        new MutationObserver(() => {
+          const open = isOpen(id), idx = stack.indexOf('modal:' + id);
+          if (open && idx < 0) push('modal:' + id);
+          else if (!open && idx >= 0) { stack.splice(idx, 1); dropEntry(); }
+        }).observe(m, { attributes: true, attributeFilter: ['class'] });
+      });
+
+      const baseSwitchTab = switchTab;
+      switchTab = function (tabName) {
+        baseSwitchTab(tabName);
+        if (fromPop) return;
+        const i = stack.indexOf('tab');
+        if (tabName !== 'dashboard' && i < 0) push('tab');
+        else if (tabName === 'dashboard' && i >= 0 && i === stack.length - 1) { stack.pop(); dropEntry(); }
+      };
+
+      window.addEventListener('popstate', () => {
+        if (ignorePop > 0) { ignorePop--; return; }
+        const top = stack.pop();
+        if (!top) return;
+        if (top === 'tab') { fromPop = true; try { baseSwitchTab('dashboard'); } finally { fromPop = false; } }
+        else { const id = top.slice(6); if (isOpen(id)) MODALS[id](); }
+      });
+    })();
+
     function setMobileViewMode(mode) {
       mobileViewMode = mode;
       const cardContainer = document.getElementById('mobileCardsContainer');
