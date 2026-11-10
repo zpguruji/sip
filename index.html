@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="mr">
 <head>
+<!--
+  =============================================================================
+  App Name: Mutual Fund SIP Tracker & Portfolio Dashboard
+  Developer: श्री. सोमनाथ गायकवाड सर (वेब डेव्हलोपर)
+  Description: प्रगत, मॉडर्न, मोबाईल-फ्रेंडली आणि ऑटोमॅटिक लाईव्ह AMFI NAV सिंक 
+               करणारे म्युच्युअल फंड्स, SIP, XIRR आणि उद्दिष्ट नियोजन वेब ॲप.
+  
+  ॲपची प्रमुख वैशिष्ट्ये व माहिती:
+    1. लाईव्ह NAV व पोर्टफोलिओ ट्रॅकिंग: AMFI API द्वारे सर्व म्युच्युअल फंड्सचे दैनंदिन लाईव्ह NAV स्वयंचलितपणे अपडेट होतात.
+    2. XIRR आणि नफा मोजणी: प्रत्येक फंडाची आणि संपूर्ण पोर्टफोलिओची अचूक वार्षिक वाढ (XIRR %) व नफा/तोटा (Absolute Return) मोजण्याची सुविधा.
+    3. स्वतंत्र सेबी श्रेणी (Sebi Categories): Large Cap, Flexi Cap, Midcap, Smallcap, Index, ELSS व Debt फंड्सचे स्वतंत्र वर्गीकरण.
+    4. स्मार्ट उद्दिष्ट व Step-Up SIP प्लॅनर: दीर्घकालीन आर्थिक उद्दिष्टे (उदा. ५० लाख कॉर्पस) साध्या व Step-Up SIP च्या माध्यमातून किती वर्षांत पूर्ण होतील याचे सिम्युलेटर.
+    5. परफॉर्मन्स रँकिंग व फंड ओव्हरलॅप: सर्वोत्तम फंड्सचे लीडरबोर्ड आणि एकाच प्रकारच्या शेअर्समधील डुप्लिकेशन तपासणारे ओव्हरलॅप ॲनालायझर.
+    6. PWA मोबाईल इन्स्टॉल व व्हॉट्सॲप रिपोर्ट: मोबाईलच्या होम स्क्रीनवर ॲप म्हणून इन्स्टॉल करण्याची सोय आणि एका क्लिकवर रिपोर्ट व्हॉट्सॲपवर शेअर करण्याची सुविधा.
+  =============================================================================
+-->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
@@ -122,6 +138,25 @@
     @media (max-width: 767px) {
       #homeSummary.away { display: none; }
       #tabTitleBar.show { display: flex; }
+    }
+      /* ---- Mobile polish ---- */
+    .fab-add { display: none; }
+    .app-card.border-l-4 { border-left-width: 1px !important; box-shadow: inset 4px 0 0 0 var(--acc, #64748b), 0 4px 20px -2px rgba(15,23,42,.04); }
+    .app-card.border-l-amber-500{--acc:#f59e0b}
+    .app-card.border-l-emerald-600{--acc:#059669}
+    .app-card.border-l-indigo-600{--acc:#4f46e5}
+    .app-card.border-l-slate-700{--acc:#334155}
+    .app-card.border-l-teal-600{--acc:#0d9488}
+    html.pwa-installed [onclick*="triggerPwaInstall"] { display: none !important; }
+    @media (max-width: 639px) {
+      header.sticky { position: static !important; }
+      #appSubtitle, header h1 + span { display: none; }
+    }
+    @media (max-width: 767px) {
+      .chip-row { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+      .chip-row::-webkit-scrollbar { display: none; }
+      .chip-row > * { flex-shrink: 0; white-space: nowrap; }
+      .fab-add { display: flex; position: fixed; right: 16px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 40; width: 54px; height: 54px; border-radius: 18px; background: #4f46e5; color: #fff; font-size: 20px; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(79,70,229,.4); cursor: pointer; }
     }
   </style>
 </head>
@@ -450,7 +485,7 @@
       <div class="app-card p-4 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
           <!-- Status Filter Pills -->
-          <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="chip-row flex items-center gap-1.5 flex-wrap">
             <button onclick="setStatusFilter('ALL')" data-status="ALL" class="status-pill px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-900 text-white cursor-pointer">
               <span id="statusAllLabel">सर्व फंड्स</span>
             </button>
@@ -458,7 +493,7 @@
               🟢 <span id="statusActiveLabel">सुरू SIP</span>
             </button>
             <button onclick="setStatusFilter('stopped')" data-status="stopped" class="status-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 cursor-pointer">
-              ⏸️ <span id="statusStoppedLabel">बंद SIP (Hold)</span>
+              ⏸️ <span id="statusStoppedLabel">बंद SIP</span>
             </button>
           </div>
 
@@ -476,7 +511,7 @@
         </div>
 
         <!-- Separated SEBI-Style Category Filter Pills -->
-        <div class="flex items-center gap-1.5 flex-wrap">
+        <div class="chip-row flex items-center gap-1.5 flex-wrap">
           <button onclick="setCategoryFilter('ALL')" data-cat="ALL" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-white cursor-pointer">सर्व श्रेणी</button>
           <button onclick="setCategoryFilter('Large Cap Fund')" data-cat="Large Cap Fund" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer">Large Cap</button>
           <button onclick="setCategoryFilter('Flexi Cap / Multi Cap')" data-cat="Flexi Cap / Multi Cap" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer">Flexi / Multi Cap</button>
@@ -1916,7 +1951,7 @@
       // Filter Counts
       document.getElementById('statusAllLabel').textContent = (currentLang === 'mr' ? 'सर्व फंड्स' : 'All Funds') + ` (${portfolio.length})`;
       document.getElementById('statusActiveLabel').textContent = (currentLang === 'mr' ? 'सुरू SIP' : 'Active SIP') + ` (${activeCount})`;
-      document.getElementById('statusStoppedLabel').textContent = (currentLang === 'mr' ? 'बंद SIP (Hold)' : 'Hold SIP') + ` (${stoppedCount})`;
+      document.getElementById('statusStoppedLabel').textContent = (currentLang === 'mr' ? 'बंद SIP' : 'Hold SIP') + ` (${stoppedCount})`;
 
       renderQuickHoldings(sortedByVal.slice(0, 6));
       renderPortfolioHoldings();
@@ -2042,7 +2077,7 @@
             <div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl text-center">
               <div><span class="text-[10px] text-slate-500 block">गुंतवणूक</span><span class="font-bold text-xs">${formatINR(fund.invested)}</span></div>
               <div><span class="text-[10px] text-slate-500 block">चालू मूल्य</span><span class="font-bold text-xs text-indigo-600 dark:text-indigo-400">${formatINR(currentVal)}</span></div>
-              <div><span class="text-[10px] text-slate-500 block">नफा</span><span class="font-bold text-xs ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${profit >= 0 ? '+' : ''}${formatINR(profit)} (${absPct.toFixed(1)}%)</span></div>
+              <div><span class="text-[10px] text-slate-500 block">नफा</span><span class="font-bold text-xs ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${profit >= 0 ? '+' : ''}${formatINR(profit)}</span><span class="block text-[10px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">(${absPct.toFixed(1)}%)</span></div>
             </div>
             <div class="flex items-center justify-between pt-1 text-xs">
               <span class="text-slate-500">मासिक SIP: <strong>${isStopped ? '₹0 (Hold)' : formatINR(fund.monthlySip)}</strong></span>
@@ -2737,6 +2772,11 @@
     // PWA: manifest/icons are linked in <head>; here we register the service worker and capture the install prompt
     function initSingleFilePWA() {
       try {
+        const modes = ['standalone', 'fullscreen', 'minimal-ui'].map(m => window.matchMedia('(display-mode: ' + m + ')'));
+        const syncInstalled = () => document.documentElement.classList.toggle('pwa-installed', modes.some(q => q.matches) || navigator.standalone === true);
+        syncInstalled();
+        modes.forEach(q => q.addEventListener && q.addEventListener('change', syncInstalled));
+        window.addEventListener('appinstalled', () => { deferredPwaPrompt = null; document.documentElement.classList.add('pwa-installed'); });
         window.addEventListener('beforeinstallprompt', (e) => {
           e.preventDefault();
           deferredPwaPrompt = e;
@@ -3384,5 +3424,6 @@
       setTimeout(() => t.remove(), 3200);
     }
   </script>
+<button type="button" class="fab-add" onclick="openFundModal()" aria-label="नवीन फंड जोडा"><i class="fa-solid fa-plus"></i></button>
 </body>
 </html>
