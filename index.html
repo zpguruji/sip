@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SIP ट्रॅकर" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <title>म्युच्युअल फंड SIP ट्रॅकर आणि पोर्टफोलिओ डॅशबोर्ड</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -109,6 +116,13 @@
     }
     details > summary { list-style: none; }
     details > summary::-webkit-details-marker { display: none; }
+    /* Mobile: show the top summary only on Home; other tabs get a slim title bar */
+    #tabTitleBar { display: none; }
+    #homeSummary, #tabTitleBar { margin-top: 0 !important; }
+    @media (max-width: 767px) {
+      #homeSummary.away { display: none; }
+      #tabTitleBar.show { display: flex; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white overflow-x-hidden pb-20 md:pb-6">
@@ -142,7 +156,7 @@
       <div class="flex items-center justify-between w-full sm:w-auto gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
           <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-md shrink-0">
-            <i class="fa-solid fa-chart-line text-slate-950 text-base sm:text-lg"></i>
+            <i class="fa-solid fa-arrow-trend-up text-slate-950 text-base sm:text-lg"></i>
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
@@ -194,25 +208,50 @@
   <!-- Main Content Container -->
   <main class="flex-grow max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 space-y-4">
 
-    <!-- Status & Quick Action Strip -->
-    <div class="app-card px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-      <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span data-i18n="lastUpdatedLabel">शेवटचे NAV अपडेट:</span>
-        <span id="lastSyncTimestamp" class="font-bold">तयार (Ready)</span>
+    <!-- Slim title bar (mobile only, shown on non-Home tabs) -->
+    <div id="tabTitleBar" class="app-card p-3 items-center gap-3">
+      <button type="button" onclick="switchTab('dashboard')" aria-label="Home" class="w-11 h-11 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="min-w-0">
+        <div id="tabTitleText" class="font-extrabold text-base text-slate-900 dark:text-slate-100 leading-tight"></div>
+        <div id="tabTitleHint" class="text-[11px] text-slate-500"></div>
       </div>
-      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-        <button onclick="openTxnModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold inline-flex items-center gap-1 border border-emerald-200 dark:border-emerald-800 cursor-pointer">
-          <i class="fa-solid fa-receipt"></i> <span data-i18n="addTxnQuickBtn">+ व्यवहार नोंदवा</span>
+      <div class="ml-auto text-right shrink-0">
+        <div id="tabTitleValLbl" class="text-[10px] text-slate-500"></div>
+        <div id="tabTitleValue" class="font-extrabold text-sm text-indigo-600 dark:text-indigo-400"></div>
+      </div>
+    </div>
+
+    <div id="homeSummary" class="space-y-4">
+    <!-- Status & Quick Action Strip (Cleanly aligned 4-button grid, Clear button moved strictly to Settings) -->
+    <div class="app-card p-3 sm:px-4 sm:py-3 space-y-2.5 text-xs">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300 min-w-0">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 live-dot"></span>
+          <span data-i18n="lastUpdatedLabel" class="truncate">शेवटचे NAV अपडेट:</span>
+          <span id="lastSyncTimestamp" class="font-extrabold text-slate-800 dark:text-slate-100 shrink-0">तयार (Ready)</span>
+        </div>
+        <button onclick="triggerPwaInstall()" id="topPwaInstallBtn" class="px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-emerald-600 text-white font-bold text-[11px] inline-flex items-center gap-1.5 shadow-xs hover:opacity-95 cursor-pointer shrink-0">
+          <i class="fa-solid fa-mobile-screen-button text-emerald-300 dark:text-white"></i>
+          <span data-i18n="installAppShort">ॲप इन्स्टॉल</span>
         </button>
-        <button onclick="exportCSV()" class="hover:text-emerald-600 font-semibold inline-flex items-center gap-1 cursor-pointer">
-          <i class="fa-solid fa-file-csv text-emerald-600"></i> <span data-i18n="exportCsv">CSV</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button onclick="openTxnModal()" class="px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-extrabold inline-flex items-center justify-center gap-1.5 border border-emerald-200 dark:border-emerald-800 cursor-pointer transition-all">
+          <i class="fa-solid fa-receipt"></i>
+          <span data-i18n="addTxnQuickBtn">+ व्यवहार नोंदवा</span>
         </button>
-        <button onclick="exportJSON()" class="hover:text-indigo-600 font-semibold inline-flex items-center gap-1 cursor-pointer">
-          <i class="fa-solid fa-download text-indigo-500"></i> <span data-i18n="backupJson">बॅकअप</span>
+        <button onclick="openWhatsAppReportModal()" class="px-3 py-2 rounded-xl bg-green-50 dark:bg-green-950/60 hover:bg-green-100 text-green-700 dark:text-green-300 font-extrabold inline-flex items-center justify-center gap-1.5 border border-green-200 dark:border-green-800 cursor-pointer transition-all">
+          <i class="fa-brands fa-whatsapp text-sm text-green-600 dark:text-green-400"></i>
+          <span data-i18n="whatsappReportBtn">व्हॉट्सॲप रिपोर्ट</span>
         </button>
-        <button onclick="clearAllFundsForNewUser()" class="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold inline-flex items-center gap-1 border border-rose-200 dark:border-rose-800 cursor-pointer" title="नवीन युजरसाठी सर्व डिफॉल्ट फंड्स क्लिअर करा">
-          <i class="fa-solid fa-broom"></i> <span data-i18n="clearAllNewUser">नवीन युजर (Clear)</span>
+        <button onclick="exportCSV()" class="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 text-slate-700 dark:text-slate-200 font-bold inline-flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 cursor-pointer transition-all">
+          <i class="fa-solid fa-file-csv text-emerald-600"></i>
+          <span data-i18n="exportCsv">CSV एक्सपोर्ट</span>
+        </button>
+        <button onclick="exportJSON()" class="px-3 py-2 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold inline-flex items-center justify-center gap-1.5 border border-indigo-200/80 dark:border-indigo-800 cursor-pointer transition-all">
+          <i class="fa-solid fa-download text-indigo-500"></i>
+          <span data-i18n="backupJson">JSON बॅकअप</span>
         </button>
       </div>
     </div>
@@ -266,6 +305,8 @@
         </div>
       </div>
     </section>
+
+    </div><!-- /homeSummary -->
 
     <!-- Desktop & Tablet 6-Tab Navigation Bar -->
     <nav class="hidden md:flex items-center gap-1.5 app-card p-1.5 overflow-x-auto">
@@ -537,6 +578,141 @@
           </div>
         </div>
       </div>
+
+      <!-- NEW SECTION 1 & 2: PERFORMANCE RANKING & FUND OVERLAP ANALYZER -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Left 7 Cols: Performance Ranking Leaderboard -->
+        <div class="lg:col-span-7 app-card p-4 sm:p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300">
+                <i class="fa-solid fa-trophy"></i> <span data-i18n="rankBadge">परफॉर्मन्स लीडरबोर्ड</span>
+              </span>
+              <h3 class="text-sm sm:text-base font-extrabold mt-1" data-i18n="rankTitle">🏆 फंडांचे कामगिरीनुसार रँकिंग (Performance Ranking)</h3>
+              <p class="text-[11px] text-slate-500" data-i18n="rankSub">सर्वात जास्त परतावा देणारे आणि मागे पडणारे फंड्स एकाच ठिकाणी</p>
+            </div>
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-[11px] font-bold self-start sm:self-auto shrink-0">
+              <button type="button" onclick="setRankingSort('xirr')" id="rankSortBtn-xirr" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-emerald-600 shadow-xs cursor-pointer">XIRR %</button>
+              <button type="button" onclick="setRankingSort('abs')" id="rankSortBtn-abs" class="px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 cursor-pointer">नफा %</button>
+              <button type="button" onclick="setRankingSort('gain')" id="rankSortBtn-gain" class="px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 cursor-pointer">₹ नफा</button>
+            </div>
+          </div>
+
+          <!-- Top 3 Podium Cards -->
+          <div id="topPerformersPodium" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
+
+          <!-- Laggards / Attention Needed Box -->
+          <div id="laggardsAlertBox" class="hidden p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/70 text-xs space-y-1.5"></div>
+
+          <!-- Full Ranked List -->
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-2 px-1">
+              <span data-i18n="rankAllListLbl">सर्व फंडांची क्रमवारी (Complete Leaderboard)</span>
+              <span id="rankMetricHeaderLbl">XIRR % नुसार</span>
+            </div>
+            <div id="performanceLeaderboardList" class="space-y-2 max-h-80 overflow-y-auto pr-1 custom-scrollbar"></div>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Fund Overlap & Diversification Analyzer -->
+        <div class="lg:col-span-5 app-card p-4 sm:p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300">
+                <i class="fa-solid fa-layer-group"></i> <span data-i18n="overlapBadge">ओव्हरलॅप व डायव्हर्सिफिकेशन</span>
+              </span>
+              <h3 class="text-sm sm:text-base font-extrabold mt-1" data-i18n="overlapTitle">🔍 फंड ओव्हरलॅप विश्लेषक (Fund Overlap)</h3>
+              <p class="text-[11px] text-slate-500" data-i18n="overlapSub">एकाच श्रेणीतील गर्दी आणि दोन फंडांमधील कॉमन शेअर्स तपासा</p>
+            </div>
+
+            <!-- Diversification Score Card -->
+            <div class="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white space-y-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-bold block" data-i18n="divScoreTitle">पोर्टफोलिओ डायव्हर्सिफिकेशन स्कोअर</span>
+                  <p id="diversificationStatusText" class="text-xs font-semibold text-emerald-300 mt-0.5">उत्तम विभागणी</p>
+                </div>
+                <div class="text-right">
+                  <span id="diversificationScoreVal" class="text-xl font-black text-white">80/100</span>
+                </div>
+              </div>
+              <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div id="diversificationScoreBar" class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full transition-all duration-500" style="width: 80%"></div>
+              </div>
+            </div>
+
+            <!-- Category Duplication / Crowd Alerts -->
+            <div>
+              <h4 class="text-xs font-extrabold mb-2 flex items-center gap-1.5">
+                <i class="fa-solid fa-Clone text-amber-500"></i>
+                <span data-i18n="catCrowdTitle">श्रेणी डुप्लिकेशन तपासणी (Category Overlap)</span>
+              </h4>
+              <div id="categoryOverlapAlerts" class="space-y-2 text-xs"></div>
+            </div>
+
+            <!-- Interactive 2-Fund Overlap Checker Tool -->
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
+              <h4 class="text-xs font-extrabold flex items-center gap-1.5">
+                <i class="fa-solid fa-code-compare text-indigo-600 dark:text-indigo-400"></i>
+                <span data-i18n="pairCheckerTitle">दोन फंडांमधील कॉमन शेअर्स ओव्हरलॅप तपासा:</span>
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-1">पहिला फंड (Fund A)</label>
+                  <select id="overlapFundSelectA" onchange="evaluateFundPairOverlap()" class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold"></select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-1">दुसरा फंड (Fund B)</label>
+                  <select id="overlapFundSelectB" onchange="evaluateFundPairOverlap()" class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold"></select>
+                </div>
+              </div>
+
+              <div id="pairOverlapResultBox" class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW SECTION 3: SMART PORTFOLIO REBALANCER (अ‍ॅसेट रिबॅलन्सिंग सल्लागार) -->
+      <div class="app-card p-4 sm:p-5 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 dark:bg-teal-950/70 text-teal-800 dark:text-teal-300">
+              <i class="fa-solid fa-scale-balanced"></i> <span data-i18n="rebalBadge">स्मार्ट पोर्टफोलिओ रिबॅलन्सर</span>
+            </span>
+            <h3 class="text-sm sm:text-base font-extrabold mt-1" data-i18n="rebalTitle">⚖️ अ‍ॅसेट रिबॅलन्सिंग सल्लागार (Smart Portfolio Rebalancer)</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="rebalSub">तुमच्या जोखीम प्रोफाईलनुसार कोणत्या श्रेणीत नफा बुक करावा आणि कुठे SIP वाढवावी याचा अचूक हिशोब</p>
+          </div>
+          <!-- Risk Profile Preset Selector -->
+          <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-[11px] font-bold flex-wrap shrink-0">
+            <button type="button" onclick="setRebalancePreset('balanced')" id="rebalBtn-balanced" class="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 text-emerald-600 shadow-xs cursor-pointer">⚖️ संतुलित (Balanced)</button>
+            <button type="button" onclick="setRebalancePreset('aggressive')" id="rebalBtn-aggressive" class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 cursor-pointer">🚀 आक्रमक (Aggressive)</button>
+            <button type="button" onclick="setRebalancePreset('conservative')" id="rebalBtn-conservative" class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 cursor-pointer">🛡️ सुरक्षित (Safe)</button>
+          </div>
+        </div>
+
+        <!-- Rebalancing Bucket Cards Grid -->
+        <div id="rebalanceBucketsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+
+        <!-- Tax-Free SIP Rebalancing Recommendation Box -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 pt-1">
+          <div class="lg:col-span-7 p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/80 text-xs space-y-2">
+            <div class="font-extrabold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-wand-magic-sparkles text-emerald-600"></i>
+              <span data-i18n="rebalActionHeader">झिरो-टॅक्स रिबॅलन्सिंग कृती आराखडा (Actionable Advice):</span>
+            </div>
+            <div id="rebalanceActionSummary" class="text-[11px] text-slate-700 dark:text-slate-300 space-y-1 leading-relaxed"></div>
+          </div>
+
+          <div class="lg:col-span-5 p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/80 text-xs space-y-2">
+            <div class="font-extrabold text-indigo-900 dark:text-indigo-300 flex items-center justify-between">
+              <span><i class="fa-solid fa-calendar-check mr-1 text-indigo-600"></i> <span data-i18n="rebalSipSplitTitle">आदर्श मासिक SIP विभागणी:</span></span>
+              <span id="rebalActiveSipTotalBadge" class="px-2 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-black">₹15,000/महिना</span>
+            </div>
+            <div id="rebalanceSipSplitList" class="space-y-1.5 text-[11px]"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- =================================================================== -->
@@ -636,6 +812,14 @@
             </button>
             <button onclick="resetDemoData()" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 cursor-pointer">
               <i class="fa-solid fa-rotate-left"></i> <span>डिफॉल्ट १२ फंड्स लोड करा</span>
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button onclick="openWhatsAppReportModal()" class="p-3 rounded-xl bg-green-50 dark:bg-green-950/60 hover:bg-green-100 text-green-700 dark:text-green-300 font-extrabold text-xs flex items-center justify-center gap-2 border border-green-200 dark:border-green-800 cursor-pointer">
+              <i class="fa-brands fa-whatsapp text-base"></i> <span>१-क्लिक व्हॉट्सॲप रिपोर्ट</span>
+            </button>
+            <button onclick="triggerPwaInstall()" class="p-3 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 font-extrabold text-xs flex items-center justify-center gap-2 border border-teal-200 dark:border-teal-800 cursor-pointer">
+              <i class="fa-solid fa-mobile-screen-button text-sm"></i> <span>होम-स्क्रीन अ‍ॅप इन्स्टॉल (PWA)</span>
             </button>
           </div>
           <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
@@ -885,6 +1069,69 @@
     </div>
   </div>
 
+  <!-- ===================================================================== -->
+  <!-- 1-CLICK WHATSAPP REPORT & SHARE MODAL                                 -->
+  <!-- ===================================================================== -->
+  <div id="whatsAppReportModal" class="fixed inset-0 z-50 hidden bg-slate-950/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="if(event.target===this)closeWhatsAppReportModal()">
+    <div class="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[90dvh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-950 text-green-600 flex items-center justify-center">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold">१-क्लिक व्हॉट्सॲप पोर्टफोलिओ रिपोर्ट</h3>
+            <p class="text-[11px] text-slate-500">तुमच्या पोर्टफोलिओचा तयार गोषवारा शेअर किंवा कॉपी करा</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeWhatsAppReportModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-3 custom-scrollbar">
+        <textarea id="whatsAppReportText" rows="11" readonly class="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs font-mono leading-relaxed focus:outline-none"></textarea>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+          <button type="button" onclick="sendReportToWhatsApp()" class="sm:col-span-2 py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+            <i class="fa-brands fa-whatsapp text-base"></i> <span>थेट WhatsApp वर पाठवा</span>
+          </button>
+          <button type="button" onclick="copyWhatsAppReportText()" class="py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-slate-700 hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+            <i class="fa-regular fa-copy"></i> <span>टेक्स्ट कॉपी करा</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MOBILE HOME-SCREEN PWA INSTALL GUIDE MODAL                            -->
+  <!-- ===================================================================== -->
+  <div id="pwaInstallModal" class="fixed inset-0 z-50 hidden bg-slate-950/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="if(event.target===this)closePwaInstallModal()">
+    <div class="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 text-slate-950 flex items-center justify-center shadow-md shrink-0">
+            <i class="fa-solid fa-arrow-trend-up text-lg"></i>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold">होम-स्क्रीनवर ॲप सेव्ह करा (PWA)</h3>
+            <p class="text-[11px] text-slate-500">मोबाईलवर खऱ्या नेटिव्ह अ‍ॅपसारखा अनुभव मिळवा</p>
+          </div>
+        </div>
+        <button type="button" onclick="closePwaInstallModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-2.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <p class="font-bold text-slate-900 dark:text-white">📱 Android (Chrome) मोबाईलसाठी २ सोप्या स्टेप्स:</p>
+        <ol class="list-decimal list-inside space-y-1.5 leading-relaxed">
+          <li>ब्राउझरच्या उजव्या कोपऱ्यातील <strong>तीन टिंबांवर (⋮ Menu)</strong> क्लिक करा.</li>
+          <li>तिथे <strong>"Add to Home screen"</strong> किंवा <strong>"Install App"</strong> पर्याय निवडा.</li>
+        </ol>
+        <p class="font-bold text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">🍏 iPhone (Safari) साठी:</p>
+        <p class="leading-relaxed">खालील <strong>Share (⬆️)</strong> बटनावर टॅप करून <strong>"Add to Home Screen"</strong> निवडा.</p>
+      </div>
+      <div class="flex justify-end">
+        <button type="button" onclick="closePwaInstallModal()" class="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs cursor-pointer">समजले (OK)</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 mt-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
@@ -893,7 +1140,7 @@
         <span id="footerDisclaimer">AMFI Live NAV API द्वारे समर्थित • सर्व डेटा ब्राउझरमध्ये सुरक्षित</span>
       </div>
       <div id="developerCredit" class="font-bold text-emerald-400 tracking-wide text-center sm:text-right">
-        संकल्पना व निर्मिती: श्री. सोमनाथ गायकवाड सर
+        संकल्पना व निर्मिती: श्री. सोमनाथ गायकवाड सर (वेब डेव्हलोपर)
       </div>
     </div>
   </footer>
@@ -915,7 +1162,43 @@
     let activeCategoryFilter = 'ALL';
     let activeStatusFilter = 'ALL';
     let activeTab = 'dashboard';
+    let activeRankingSort = 'xirr'; // 'xirr' | 'abs' | 'gain'
+    let activeRebalancePreset = 'balanced'; // 'balanced' | 'aggressive' | 'conservative'
+    let deferredPwaPrompt = null;
     let pendingConfirmCallback = null;
+
+    const REBALANCE_PRESETS = {
+      balanced: {
+        labelMr: 'संतुलित (Balanced)',
+        labelEn: 'Balanced Growth',
+        targets: {
+          'Large Cap & Index': 45,
+          'Flexi & Large-Midcap': 25,
+          'Midcap & Smallcap': 15,
+          'ELSS & Debt/Hybrid': 15
+        }
+      },
+      aggressive: {
+        labelMr: 'आक्रमक (Aggressive)',
+        labelEn: 'Aggressive Wealth',
+        targets: {
+          'Large Cap & Index': 30,
+          'Flexi & Large-Midcap': 30,
+          'Midcap & Smallcap': 30,
+          'ELSS & Debt/Hybrid': 10
+        }
+      },
+      conservative: {
+        labelMr: 'सुरक्षित (Conservative)',
+        labelEn: 'Conservative Safe',
+        targets: {
+          'Large Cap & Index': 60,
+          'Flexi & Large-Midcap': 20,
+          'Midcap & Smallcap': 5,
+          'ELSS & Debt/Hybrid': 15
+        }
+      }
+    };
 
     let portfolio = [];
     let transactions = [];
@@ -929,9 +1212,35 @@
       'Midcap Fund': '#4f46e5',           // Indigo
       'Smallcap Fund': '#e11d48',         // Rose
       'Index Fund': '#0284c7',            // Sky Blue
-      'ELSS (Tax Saver)`': '#d97706',     // Amber
       'ELSS (Tax Saver)': '#d97706',      // Amber
       'Debt / Liquid / Hybrid': '#7c3aed' // Violet
+    };
+
+    // Underlying Top Stock Holdings Profile for Overlap Estimation
+    const FUND_HOLDINGS_PROFILES = {
+      '119598': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Infosys', 'L&T', 'ITC', 'TCS', 'Axis Bank', 'SBI', 'Bharti Airtel'],
+      '120465': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Infosys', 'TCS', 'Bharti Airtel', 'L&T', 'Bajaj Finance', 'Kotak Bank', 'Mahindra & Mahindra'],
+      '119065': ['HDFC Bank', 'Reliance Industries', 'ICICI Bank', 'Infosys', 'L&T', 'TCS', 'ITC', 'Bharti Airtel', 'Axis Bank', 'SBI'],
+      '122639': ['HDFC Bank', 'Power Grid', 'Bajaj Holdings', 'ICICI Bank', 'Coal India', 'ITC', 'Axis Bank', 'Maruti Suzuki', 'Alphabet (Google)', 'Microsoft'],
+      '118834': ['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'SBI', 'L&T', 'Infosys', 'Reliance Industries', 'Max Financial', 'Lupin', 'Prestige Estates'],
+      '119544': ['HDFC Bank', 'ICICI Bank', 'Infosys', 'Reliance Industries', 'L&T', 'NTPC', 'Bharti Airtel', 'Sun Pharma', 'Tata Motors', 'Kotak Bank'],
+      '118803': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'NTPC', 'Infosys', 'Axis Bank', 'SBI', 'L&T', 'Tata Motors', 'Coal India'],
+      '119609': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Axis Bank', 'Infosys', 'TCS', 'Bharti Airtel', 'NTPC', 'Maruti Suzuki', 'CG Power'],
+      '118778': ['Voltamp Transformers', 'Multi Commodity Exchange', 'HDFC Bank', 'Apar Industries', 'Tejas Networks', 'Karur Vysya Bank', 'BHEL', 'Dixon Tech', 'Cyient', 'Kirloskar Bros'],
+      '120823': ['Reliance Industries', 'HDFC Bank', 'Adani Power', 'Jio Financial', 'ITC', 'Aurobindo Pharma', 'SAIL', 'LIC', 'Tata Power', 'Samvardhana Motherson'],
+      '119604': ['Persistent Systems', 'Coforge', 'Dixon Tech', 'Trent', 'Indian Hotels', 'Cummins India', 'Solar Industries', 'Lupin', 'Federal Bank', 'Max Healthcare'],
+      '119568': ['91-Day Treasury Bill', 'NABARD CP', 'SIDBI CD', 'HDFC Bank CD', 'Reliance Retail CP', 'REC Bonds', 'NTPC CP', 'ICICI Sec CP']
+    };
+
+    const CATEGORY_DEFAULT_STOCKS = {
+      'Large Cap Fund': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Infosys', 'L&T', 'TCS', 'Bharti Airtel', 'ITC'],
+      'Index Fund': ['HDFC Bank', 'Reliance Industries', 'ICICI Bank', 'Infosys', 'L&T', 'TCS', 'ITC', 'Bharti Airtel'],
+      'Flexi Cap / Multi Cap': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Infosys', 'Axis Bank', 'ITC', 'Bharti Airtel'],
+      'Large & Midcap Fund': ['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'L&T', 'SBI', 'Infosys', 'Max Financial', 'Lupin'],
+      'ELSS (Tax Saver)': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Infosys', 'Axis Bank', 'NTPC', 'L&T', 'SBI'],
+      'Midcap Fund': ['Persistent Systems', 'Coforge', 'Trent', 'Indian Hotels', 'Federal Bank', 'Max Healthcare', 'Cummins India'],
+      'Smallcap Fund': ['MCX', 'Apar Industries', 'Karur Vysya Bank', 'Cyient', 'Dixon Tech', 'Voltamp'],
+      'Debt / Liquid / Hybrid': ['Govt Treasury Bills', 'AAA Corporate Bonds', 'Bank CDs', 'Commercial Papers']
     };
 
     // Known verified fallback NAVs so even if mobile content:// or network blocks a single request, it never fails
@@ -946,23 +1255,24 @@
       '120823': { nav: 650.00, name: 'Quant Multi Cap Fund (Active Direct Growth)' },
       '120465': { nav: 73.40, name: 'Axis Large Cap Fund (Direct Growth)' },
       '112277': { nav: 73.40, name: 'Axis Large Cap Fund - Growth' },
-      '119609': { nav: 160.00, name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)' },
+      '119609': { nav: 358.27, name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)' },
       '119604': { nav: 100.00, name: 'Edelweiss Mid Cap Fund (Direct Growth)' },
       '119568': { nav: 400.00, name: 'Aditya Birla Sun Life Liquid Fund (Direct Growth)' }
     };
 
+    // Default 12 Portfolio Funds matching user's exact 4 Active SIPs (₹15,000/mo) & 8 Hold Funds (Total Invested ₹9,92,938)
     const DEFAULT_PORTFOLIO = [
       { id: 'f1', name: 'SBI Large Cap Fund (Direct Growth)', schemeCode: '119598', category: 'Large Cap Fund', sipStatus: 'active', monthlySip: 5000, invested: 220450, targetSnapshotValue: 350627, units: 3577.8265, currentNav: 98.00, navDate: 'Live AMFI', startDate: '2022-01-10', needsUnitCalibration: true },
-      { id: 'f2', name: 'Parag Parikh Flexi Cap Fund (Direct Growth)', schemeCode: '122639', category: 'Flexi Cap / Multi Cap', sipStatus: 'active', monthlySip: 5000, invested: 160992, targetSnapshotValue: 203072, units: 2268.9609, currentNav: 89.50, navDate: 'Live AMFI', startDate: '2023-01-12', needsUnitCalibration: true },
+      { id: 'f2', name: 'Parag Parikh Flexi Cap Fund (Direct Growth)', schemeCode: '122639', category: 'Flexi Cap / Multi Cap', sipStatus: 'active', monthlySip: 4000, invested: 160992, targetSnapshotValue: 203072, units: 2268.9609, currentNav: 89.50, navDate: 'Live AMFI', startDate: '2023-01-12', needsUnitCalibration: true },
       { id: 'f3', name: 'Mirae Asset Large & Midcap Fund (Direct Growth)', schemeCode: '118834', category: 'Large & Midcap Fund', sipStatus: 'active', monthlySip: 3000, invested: 132993, targetSnapshotValue: 169890, units: 1096.0645, currentNav: 155.00, navDate: 'Live AMFI', startDate: '2023-02-15', needsUnitCalibration: true },
       { id: 'f4', name: 'Aditya Birla Sun Life ELSS Tax Saver Fund', schemeCode: '119544', category: 'ELSS (Tax Saver)', sipStatus: 'stopped', monthlySip: 0, invested: 86595, targetSnapshotValue: 137154, units: 2143.0313, currentNav: 64.00, navDate: 'Live AMFI', startDate: '2021-11-10', needsUnitCalibration: true },
-      { id: 'f5', name: 'HDFC BSE Sensex Index Fund (Direct Growth)', schemeCode: '119065', category: 'Index Fund', sipStatus: 'active', monthlySip: 3000, invested: 82996, targetSnapshotValue: 103497, units: 1326.8846, currentNav: 78.00, navDate: 'Live AMFI', startDate: '2023-03-05', needsUnitCalibration: true },
+      { id: 'f5', name: 'HDFC BSE Sensex Index Fund (Direct Growth)', schemeCode: '119065', category: 'Index Fund', sipStatus: 'stopped', monthlySip: 0, invested: 82996, targetSnapshotValue: 103497, units: 1326.8846, currentNav: 78.00, navDate: 'Live AMFI', startDate: '2023-03-05', needsUnitCalibration: true },
       { id: 'f6', name: 'Nippon India ELSS Tax Saver Fund', schemeCode: '118803', category: 'ELSS (Tax Saver)', sipStatus: 'stopped', monthlySip: 0, invested: 70865, targetSnapshotValue: 103110, units: 831.5323, currentNav: 124.00, navDate: 'Live AMFI', startDate: '2022-04-10', needsUnitCalibration: true },
       { id: 'f7', name: 'Nippon India Small Cap Fund (Direct Growth)', schemeCode: '118778', category: 'Smallcap Fund', sipStatus: 'active', monthlySip: 3000, invested: 72996, targetSnapshotValue: 80446, units: 437.2065, currentNav: 184.00, navDate: 'Live AMFI', startDate: '2024-01-15', needsUnitCalibration: true },
-      { id: 'f8', name: 'Quant Multi Cap Fund (Active Direct Growth)', schemeCode: '120823', category: 'Flexi Cap / Multi Cap', sipStatus: 'active', monthlySip: 2000, invested: 63997, targetSnapshotValue: 69124, units: 106.3446, currentNav: 650.00, navDate: 'Live AMFI', startDate: '2024-02-10', needsUnitCalibration: true },
+      { id: 'f8', name: 'Quant Multi Cap Fund (Active Direct Growth)', schemeCode: '120823', category: 'Flexi Cap / Multi Cap', sipStatus: 'stopped', monthlySip: 0, invested: 63997, targetSnapshotValue: 69124, units: 106.3446, currentNav: 650.00, navDate: 'Live AMFI', startDate: '2024-02-10', needsUnitCalibration: true },
       { id: 'f9', name: 'Axis Large Cap Fund (Direct Growth)', schemeCode: '120465', category: 'Large Cap Fund', sipStatus: 'stopped', monthlySip: 0, invested: 40056, targetSnapshotValue: 55728, units: 759.2371, currentNav: 73.40, navDate: 'Live AMFI', startDate: '2023-09-07', needsUnitCalibration: true },
-      { id: 'f10', name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)', schemeCode: '119609', category: 'ELSS (Tax Saver)', sipStatus: 'stopped', monthlySip: 0, invested: 19999, targetSnapshotValue: 52130, units: 325.8125, currentNav: 160.00, navDate: 'Live AMFI', startDate: '2020-08-15', needsUnitCalibration: true },
-      { id: 'f11', name: 'Edelweiss Mid Cap Fund (Direct Growth)', schemeCode: '119604', category: 'Midcap Fund', sipStatus: 'active', monthlySip: 2000, invested: 39998, targetSnapshotValue: 39921, units: 399.2100, currentNav: 100.00, navDate: 'Live AMFI', startDate: '2024-08-10', needsUnitCalibration: true },
+      { id: 'f10', name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)', schemeCode: '119609', category: 'ELSS (Tax Saver)', sipStatus: 'stopped', monthlySip: 0, invested: 19999, targetSnapshotValue: 52130, units: 145.5048, currentNav: 358.27, navDate: 'Live AMFI', startDate: '2020-08-15', needsUnitCalibration: true },
+      { id: 'f11', name: 'Edelweiss Mid Cap Fund (Direct Growth)', schemeCode: '119604', category: 'Midcap Fund', sipStatus: 'stopped', monthlySip: 0, invested: 39998, targetSnapshotValue: 39921, units: 399.2100, currentNav: 100.00, navDate: 'Live AMFI', startDate: '2024-08-10', needsUnitCalibration: true },
       { id: 'f12', name: 'Aditya Birla Sun Life Liquid Fund (Direct Growth)', schemeCode: '119568', category: 'Debt / Liquid / Hybrid', sipStatus: 'stopped', monthlySip: 0, invested: 1001, targetSnapshotValue: 1186, units: 2.9650, currentNav: 400.00, navDate: 'Live AMFI', startDate: '2023-05-20', needsUnitCalibration: true }
     ];
 
@@ -973,9 +1283,11 @@
         syncNavBtn: 'लाईव्ह NAV अपडेट',
         addFundBtn: 'नवीन/जुना फंड जोडा',
         lastUpdatedLabel: 'शेवटचे NAV अपडेट:',
+        installAppShort: 'ॲप इन्स्टॉल',
         addTxnQuickBtn: '+ व्यवहार नोंदवा',
-        exportCsv: 'CSV',
-        backupJson: 'बॅकअप',
+        whatsappReportBtn: 'व्हॉट्सॲप रिपोर्ट',
+        exportCsv: 'CSV एक्सपोर्ट',
+        backupJson: 'JSON बॅकअप',
         clearAllNewUser: 'नवीन युजर (Clear)',
         kpiInvested: 'एकूण गुंतवणूक',
         kpiCurrentVal: 'सध्याचे एकूण मूल्य',
@@ -1033,6 +1345,21 @@
         chartCatSub: 'सध्याच्या चालू मूल्यानुसार ८ स्वतंत्र श्रेणींचे वर्गीकरण',
         chartBarTitle: 'फंडनिहाय गुंतवणूक वि. चालू मूल्य',
         chartBarSub: 'प्रत्येक फंडातील मूळ गुंतवणूक आणि त्यावरील नफा',
+        rankBadge: 'परफॉर्मन्स लीडरबोर्ड',
+        rankTitle: '🏆 फंडांचे कामगिरीनुसार रँकिंग (Performance Ranking)',
+        rankSub: 'सर्वात जास्त परतावा देणारे आणि मागे पडणारे फंड्स एकाच ठिकाणी',
+        rankAllListLbl: 'सर्व फंडांची क्रमवारी (Complete Leaderboard)',
+        overlapBadge: 'ओव्हरलॅप व डायव्हर्सिफिकेशन',
+        overlapTitle: '🔍 फंड ओव्हरलॅप विश्लेषक (Fund Overlap)',
+        overlapSub: 'एकाच श्रेणीतील गर्दी आणि दोन फंडांमधील कॉमन शेअर्स तपासा',
+        divScoreTitle: 'पोर्टफोलिओ डायव्हर्सिफिकेशन स्कोअर',
+        catCrowdTitle: 'श्रेणी डुप्लिकेशन तपासणी (Category Overlap)',
+        pairCheckerTitle: 'दोन फंडांमधील कॉमन शेअर्स ओव्हरलॅप तपासा:',
+        rebalBadge: 'स्मार्ट पोर्टफोलिओ रिबॅलन्सर',
+        rebalTitle: '⚖️ अ‍ॅसेट रिबॅलन्सिंग सल्लागार (Smart Portfolio Rebalancer)',
+        rebalSub: 'तुमच्या जोखीम प्रोफाईलनुसार कोणत्या श्रेणीत नफा बुक करावा आणि कुठे SIP वाढवावी याचा अचूक हिशोब',
+        rebalActionHeader: 'झिरो-टॅक्स रिबॅलन्सिंग कृती आराखडा (Actionable Advice):',
+        rebalSipSplitTitle: 'आदर्श मासिक SIP विभागणी:',
         goalBadge: 'आर्थिक उद्दिष्ट ट्रॅकर (Goal Planner)',
         secGoalIntro: 'सध्याचा पोर्टफोलिओ + वार्षिक Step-Up SIP मधून उद्दिष्ट किती वर्षांत पूर्ण होईल ते पहा.',
         goalCurrentCompletion: 'सध्याची उद्दिष्ट पूर्तता',
@@ -1043,7 +1370,7 @@
         cancelBtn: 'रद्द करा',
         saveBtn: 'सेव्ह करा',
         footerDisclaimer: 'AMFI Live NAV API द्वारे समर्थित • सर्व डेटा ब्राउझरमध्ये सुरक्षित',
-        developerCredit: 'संकल्पना व निर्मिती: श्री. सोमनाथ गायकवाड सर'
+        developerCredit: 'संकल्पना व निर्मिती: श्री. सोमनाथ गायकवाड सर (वेब डेव्हलोपर)'
       },
       en: {
         appTitle: 'Mutual Fund SIP Tracker',
@@ -1051,9 +1378,11 @@
         syncNavBtn: 'Sync Live NAV',
         addFundBtn: 'Add / Edit Fund',
         lastUpdatedLabel: 'Last NAV Sync:',
+        installAppShort: 'Install App',
         addTxnQuickBtn: '+ Log Txn',
-        exportCsv: 'CSV',
-        backupJson: 'Backup',
+        whatsappReportBtn: 'WhatsApp Report',
+        exportCsv: 'Export CSV',
+        backupJson: 'JSON Backup',
         clearAllNewUser: 'New User (Clear)',
         kpiInvested: 'Total Invested',
         kpiCurrentVal: 'Current Value',
@@ -1111,6 +1440,21 @@
         chartCatSub: 'Distribution across 8 distinct SEBI categories by current value',
         chartBarTitle: 'Fund-wise Invested vs Current Value',
         chartBarSub: 'Original investment and net profit per scheme',
+        rankBadge: 'Performance Leaderboard',
+        rankTitle: '🏆 Fund Performance Ranking',
+        rankSub: 'Identify top wealth creators and underperforming schemes at a glance',
+        rankAllListLbl: 'Complete Scheme Leaderboard',
+        overlapBadge: 'Overlap & Diversification',
+        overlapTitle: '🔍 Fund Overlap & Crowd Analyzer',
+        overlapSub: 'Detect category duplication and common underlying stocks between any 2 funds',
+        divScoreTitle: 'Portfolio Diversification Score',
+        catCrowdTitle: 'Category Duplication Check',
+        pairCheckerTitle: 'Compare Common Stocks Between 2 Funds:',
+        rebalBadge: 'Smart Portfolio Rebalancer',
+        rebalTitle: '⚖️ Asset Rebalancing Advisor',
+        rebalSub: 'Compare your actual category weights against target risk-profile allocations',
+        rebalActionHeader: 'Zero-Tax Rebalancing Action Plan:',
+        rebalSipSplitTitle: 'Recommended Monthly SIP Split:',
         goalBadge: 'Wealth Goal Planner',
         secGoalIntro: 'Simulate how your existing corpus + annual Step-Up SIP helps achieve your target corpus.',
         goalCurrentCompletion: 'Current Goal Progress',
@@ -1129,6 +1473,7 @@
      * 2. INITIALIZATION, STORAGE, AUTO-MIGRATION & DARK MODE
      *************************************************************************/
     window.onload = function() {
+      initSingleFilePWA();
       applyDarkModeUI();
       loadDataFromStorage();
       applyTranslations();
@@ -1197,6 +1542,18 @@
 
         return fund;
       });
+
+      // 5. If active SIP sum is old 23000 default, calibrate to exact 15000 user monthly SIP
+      const activeSipTotal = updated.reduce((s, f) => s + (f && f.sipStatus !== 'stopped' ? Number(f.monthlySip || 0) : 0), 0);
+      if (activeSipTotal === 23000) {
+        const sipMap = { '119598': 3000, '122639': 3000, '118834': 2000, '119065': 2000, '118778': 2000, '120823': 1500, '119604': 1500 };
+        updated.forEach(f => {
+          if (f && sipMap[f.schemeCode] !== undefined && f.sipStatus !== 'stopped') {
+            f.monthlySip = sipMap[f.schemeCode];
+          }
+        });
+        migrated = true;
+      }
 
       if (migrated) {
         try {
@@ -1850,6 +2207,561 @@
       document.getElementById('portfolioInsightText').innerHTML = currentLang === 'mr'
         ? `तुमच्या पोर्टफोलिओमध्ये एकूण <strong>${portfolio.length} फंड्स</strong> (${categories.length} स्वतंत्र श्रेणींमध्ये) असून चालू मूल्य <strong>${formatINR(grandTotal)}</strong> आहे.`
         : `Your portfolio contains <strong>${portfolio.length} schemes</strong> across <strong>${categories.length} distinct categories</strong> worth <strong>${formatINR(grandTotal)}</strong>.`;
+
+      renderPerformanceRanking();
+      renderOverlapAnalyzer();
+      renderSmartRebalancer();
+    }
+
+    /*************************************************************************
+     * 6B. PERFORMANCE RANKING & FUND OVERLAP ANALYZER
+     *************************************************************************/
+    function setRankingSort(mode) {
+      activeRankingSort = mode;
+      ['xirr', 'abs', 'gain'].forEach(k => {
+        const btn = document.getElementById('rankSortBtn-' + k);
+        if (!btn) return;
+        btn.className = (k === mode)
+          ? 'px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-emerald-600 shadow-xs cursor-pointer'
+          : 'px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 cursor-pointer';
+      });
+      renderPerformanceRanking();
+    }
+
+    function renderPerformanceRanking() {
+      const podiumEl = document.getElementById('topPerformersPodium');
+      const listEl = document.getElementById('performanceLeaderboardList');
+      const laggardsEl = document.getElementById('laggardsAlertBox');
+      const headerLbl = document.getElementById('rankMetricHeaderLbl');
+      if (!podiumEl || !listEl) return;
+
+      if (portfolio.length === 0) {
+        podiumEl.innerHTML = '';
+        listEl.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">${currentLang === 'mr' ? 'रँकिंगसाठी किमान १ फंड जोडा.' : 'Add funds to view performance ranking.'}</div>`;
+        if (laggardsEl) laggardsEl.classList.add('hidden');
+        return;
+      }
+
+      const enriched = portfolio.map(f => {
+        const cur = f.units * f.currentNav;
+        const gain = cur - f.invested;
+        const absPct = f.invested > 0 ? (gain / f.invested) * 100 : 0;
+        const xirr = computeFundXIRR(f);
+        return { ...f, currentVal: cur, gain, absPct, xirr };
+      });
+
+      enriched.sort((a, b) => {
+        if (activeRankingSort === 'abs') return b.absPct - a.absPct;
+        if (activeRankingSort === 'gain') return b.gain - a.gain;
+        return b.xirr - a.xirr;
+      });
+
+      if (headerLbl) {
+        headerLbl.textContent = activeRankingSort === 'abs'
+          ? (currentLang === 'mr' ? 'एकूण नफा % नुसार' : 'Sorted by Absolute %')
+          : activeRankingSort === 'gain'
+            ? (currentLang === 'mr' ? 'रुपयातील नफ्यानुसार' : 'Sorted by Net Gain ₹')
+            : (currentLang === 'mr' ? 'वार्षिक XIRR % नुसार' : 'Sorted by XIRR %');
+      }
+
+      const medals = [
+        { icon: '🥇', titleMr: 'प्रथम क्रमांक (#1)', titleEn: 'Top Performer (#1)', bg: 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+        { icon: '🥈', titleMr: 'द्वितीय क्रमांक (#2)', titleEn: 'Runner Up (#2)', bg: 'bg-slate-50 dark:bg-slate-800/70 border-slate-300 dark:border-slate-700' },
+        { icon: '🥉', titleMr: 'तृतीय क्रमांक (#3)', titleEn: 'Third Place (#3)', bg: 'bg-orange-50/70 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800' }
+      ];
+
+      podiumEl.innerHTML = enriched.slice(0, 3).map((f, idx) => {
+        const m = medals[idx];
+        return `
+          <div class="p-3 rounded-2xl border ${m.bg} flex flex-col justify-between gap-2">
+            <div>
+              <div class="flex items-center justify-between text-[10px] font-extrabold text-slate-500 dark:text-slate-400">
+                <span>${m.icon} ${currentLang === 'mr' ? m.titleMr : m.titleEn}</span>
+                <span class="px-1.5 py-0.5 rounded bg-white/80 dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-300">${escapeHtml(f.category.split(' ')[0])}</span>
+              </div>
+              <div class="font-extrabold text-xs mt-1 line-clamp-2 leading-snug">${escapeHtml(f.name.split('(')[0].trim())}</div>
+            </div>
+            <div class="pt-2 border-t border-black/5 dark:border-white/5 flex items-baseline justify-between">
+              <div>
+                <span class="text-[10px] text-slate-500 block">XIRR</span>
+                <strong class="text-sm font-black text-emerald-600">${f.xirr >= 0 ? '+' : ''}${f.xirr.toFixed(1)}%</strong>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] text-slate-500 block">${currentLang === 'mr' ? 'नफा' : 'Gain'}</span>
+                <strong class="text-xs font-extrabold ${f.gain >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600'}">${f.gain >= 0 ? '+' : ''}${formatINR(f.gain)} (${f.absPct.toFixed(1)}%)</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Identify underperformers / attention needed (< 10% XIRR or negative gain)
+      const laggards = enriched.filter(f => f.xirr < 10 || f.gain <= 0);
+      if (laggardsEl) {
+        if (laggards.length > 0) {
+          laggardsEl.classList.remove('hidden');
+          const names = laggards.map(l => `<strong>${escapeHtml(l.name.split('(')[0].trim())}</strong> (XIRR: ${l.xirr.toFixed(1)}%, नफा: ${l.gain >= 0 ? '+' : ''}${formatINR(l.gain)})`).join(' • ');
+          laggardsEl.innerHTML = `
+            <div class="font-extrabold text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>${currentLang === 'mr' ? 'लक्ष द्या (कमी परतावा / नवीन गुंतवणूक असलेले फंड्स):' : 'Attention Needed (Low Return / Recent Entry):'}</span>
+            </div>
+            <p class="text-[11px] text-rose-700 dark:text-rose-200 leading-relaxed">${names}</p>
+          `;
+        } else {
+          laggardsEl.classList.add('hidden');
+        }
+      }
+
+      const maxMetric = Math.max(1, ...enriched.map(f => activeRankingSort === 'abs' ? Math.abs(f.absPct) : activeRankingSort === 'gain' ? Math.abs(f.gain) : Math.abs(f.xirr)));
+
+      listEl.innerHTML = enriched.map((f, idx) => {
+        const metricVal = activeRankingSort === 'abs' ? f.absPct : activeRankingSort === 'gain' ? f.gain : f.xirr;
+        const barWidth = Math.min(100, Math.max(6, (Math.abs(metricVal) / maxMetric) * 100));
+        const badgeCol = CATEGORY_COLORS[f.category] || '#059669';
+        const isPos = metricVal >= 0;
+        return `
+          <div class="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-1.5">
+            <div class="flex items-center justify-between gap-2 text-xs">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-6 h-6 rounded-lg ${idx < 3 ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'} font-black text-[11px] flex items-center justify-center shrink-0">#${idx + 1}</span>
+                <div class="min-w-0">
+                  <div class="font-bold truncate">${escapeHtml(f.name.split('(')[0].trim())}</div>
+                  <div class="text-[10px] text-slate-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full inline-block" style="background-color:${badgeCol}"></span>
+                    <span>${escapeHtml(f.category)}</span>
+                    <span>•</span>
+                    <span>${f.sipStatus === 'stopped' ? 'Hold' : 'Active SIP'}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="font-black ${isPos ? 'text-emerald-600' : 'text-rose-600'}">
+                  ${activeRankingSort === 'gain' ? ((f.gain >= 0 ? '+' : '') + formatINR(f.gain)) : ((metricVal >= 0 ? '+' : '') + metricVal.toFixed(1) + '%')}
+                </div>
+                <div class="text-[10px] text-slate-500">
+                  XIRR: ${f.xirr.toFixed(1)}% • नफा: ${f.absPct.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+            <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div class="h-full rounded-full ${isPos ? 'bg-emerald-500' : 'bg-rose-500'}" style="width:${barWidth.toFixed(1)}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getFundUnderlyingStocks(fund) {
+      if (!fund) return [];
+      const code = String(fund.schemeCode || '').trim();
+      if (FUND_HOLDINGS_PROFILES[code]) return FUND_HOLDINGS_PROFILES[code];
+      return CATEGORY_DEFAULT_STOCKS[fund.category] || CATEGORY_DEFAULT_STOCKS['Flexi Cap / Multi Cap'];
+    }
+
+    function renderOverlapAnalyzer() {
+      const alertsBox = document.getElementById('categoryOverlapAlerts');
+      const selA = document.getElementById('overlapFundSelectA');
+      const selB = document.getElementById('overlapFundSelectB');
+      if (!alertsBox || !selA || !selB) return;
+
+      if (portfolio.length === 0) {
+        alertsBox.innerHTML = `<div class="text-slate-400 text-xs">कोणतेही फंड उपलब्ध नाहीत.</div>`;
+        selA.innerHTML = '';
+        selB.innerHTML = '';
+        document.getElementById('pairOverlapResultBox').innerHTML = '—';
+        return;
+      }
+
+      // 1. Group by Category to detect crowding / duplication
+      const catGroups = {};
+      let grandTotal = 0;
+      portfolio.forEach(f => {
+        const val = f.units * f.currentNav;
+        grandTotal += val;
+        if (!catGroups[f.category]) catGroups[f.category] = { count: 0, value: 0, names: [] };
+        catGroups[f.category].count++;
+        catGroups[f.category].value += val;
+        catGroups[f.category].names.push(f.name.split('(')[0].trim());
+      });
+
+      const crowdedCats = Object.entries(catGroups).filter(([_, info]) => info.count > 1);
+
+      // Calculate Diversification Score (out of 100)
+      const uniqueCategoriesCount = Object.keys(catGroups).length;
+      const penaltyCrowding = crowdedCats.reduce((acc, [_, inf]) => acc + (inf.count - 1) * 5, 0);
+      const maxCatShare = grandTotal > 0 ? Math.max(...Object.values(catGroups).map(c => (c.value / grandTotal) * 100)) : 100;
+      const concentrationPenalty = maxCatShare > 45 ? Math.round((maxCatShare - 45) * 0.6) : 0;
+      const rawScore = Math.min(96, Math.max(45, 65 + uniqueCategoriesCount * 5 - penaltyCrowding - concentrationPenalty));
+
+      document.getElementById('diversificationScoreVal').textContent = `${rawScore}/100`;
+      document.getElementById('diversificationScoreBar').style.width = `${rawScore}%`;
+      document.getElementById('diversificationStatusText').textContent = rawScore >= 75
+        ? (currentLang === 'mr' ? '✅ उत्तम डायव्हर्सिफिकेशन (Balanced Portfolio)' : '✅ Well Diversified Portfolio')
+        : (currentLang === 'mr' ? '⚠️ मध्यम डायव्हर्सिफिकेशन (काही श्रेणींत एकापेक्षा जास्त फंड्स)' : '⚠️ Moderate Diversification (Category Overlap Detected)');
+
+      if (crowdedCats.length === 0) {
+        alertsBox.innerHTML = `<div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold">🎉 कोणत्याही एकाच श्रेणीत एकापेक्षा जास्त फंड्स नाहीत (Zero Category Duplication)!</div>`;
+      } else {
+        alertsBox.innerHTML = crowdedCats.map(([cat, info]) => {
+          const sharePct = grandTotal > 0 ? ((info.value / grandTotal) * 100).toFixed(1) : 0;
+          return `
+            <div class="p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-amber-900 dark:text-amber-300">⚠️ ${escapeHtml(cat)} (${info.count} फंड्स)</span>
+                <span class="text-[11px] font-bold text-amber-800 dark:text-amber-200">${formatINR(info.value)} (${sharePct}%)</span>
+              </div>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300">${info.names.map(escapeHtml).join(' + ')}</p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Populate Pair Selectors if needed
+      const prevA = selA.value;
+      const prevB = selB.value;
+      const optionsHtml = portfolio.map(f => `<option value="${f.id}">${escapeHtml(f.name.split('(')[0].trim())}</option>`).join('');
+      selA.innerHTML = optionsHtml;
+      selB.innerHTML = optionsHtml;
+
+      if (prevA && portfolio.some(f => f.id === prevA)) selA.value = prevA;
+      else selA.value = portfolio[0].id;
+
+      if (prevB && portfolio.some(f => f.id === prevB) && prevB !== selA.value) selB.value = prevB;
+      else {
+        // Default compare SBI Large Cap (f1) vs Axis Large Cap (f9) or HDFC Sensex (f5)
+        const secondChoice = portfolio.find(f => f.id === 'f9') || portfolio.find(f => f.id === 'f5') || portfolio[1] || portfolio[0];
+        selB.value = secondChoice.id;
+      }
+
+      evaluateFundPairOverlap();
+    }
+
+    function evaluateFundPairOverlap() {
+      const selA = document.getElementById('overlapFundSelectA');
+      const selB = document.getElementById('overlapFundSelectB');
+      const resBox = document.getElementById('pairOverlapResultBox');
+      if (!selA || !selB || !resBox) return;
+
+      const fundA = portfolio.find(f => f.id === selA.value);
+      const fundB = portfolio.find(f => f.id === selB.value);
+      if (!fundA || !fundB) return;
+
+      if (fundA.id === fundB.id) {
+        resBox.innerHTML = `<div class="text-amber-600 font-bold text-center py-2">${currentLang === 'mr' ? 'कृपया तुलना करण्यासाठी २ वेगवेगळे फंड्स निवडा.' : 'Please select two different funds to compare.'}</div>`;
+        return;
+      }
+
+      const stocksA = getFundUnderlyingStocks(fundA);
+      const stocksB = getFundUnderlyingStocks(fundB);
+      const commonStocks = stocksA.filter(s => stocksB.includes(s));
+
+      // Compute realistic overlap percentage based on common top holdings + category affinity
+      const unionCount = new Set([...stocksA, ...stocksB]).size || 1;
+      let overlapPct = Math.round((commonStocks.length / Math.min(stocksA.length, stocksB.length)) * 68);
+      if (fundA.category === fundB.category) overlapPct = Math.min(78, overlapPct + 14);
+      if ((fundA.category === 'Large Cap Fund' && fundB.category === 'Index Fund') || (fundB.category === 'Large Cap Fund' && fundA.category === 'Index Fund')) {
+        overlapPct = Math.max(58, overlapPct);
+      }
+      if (fundA.category === 'Debt / Liquid / Hybrid' || fundB.category === 'Debt / Liquid / Hybrid') {
+        if (fundA.category !== fundB.category) overlapPct = 0;
+      }
+
+      const levelColor = overlapPct >= 45 ? 'text-rose-600' : overlapPct >= 25 ? 'text-amber-600' : 'text-emerald-600';
+      const barColor = overlapPct >= 45 ? 'bg-rose-500' : overlapPct >= 25 ? 'bg-amber-500' : 'bg-emerald-500';
+      const levelBadge = overlapPct >= 45
+        ? (currentLang === 'mr' ? 'जास्त ओव्हरलॅप (High Overlap)' : 'High Overlap')
+        : overlapPct >= 25
+          ? (currentLang === 'mr' ? 'मध्यम ओव्हरलॅप (Moderate)' : 'Moderate Overlap')
+          : (currentLang === 'mr' ? 'कमी ओव्हरलॅप (Low - उत्तम डायव्हर्सिफिकेशन)' : 'Low Overlap (Good Diversification)');
+
+      const adviceText = overlapPct >= 45
+        ? (currentLang === 'mr'
+            ? `💡 <strong>सल्ला:</strong> या दोन्ही फंडांमध्ये <strong>~${overlapPct}%</strong> सारखेच लार्ज-कॅप शेअर्स आहेत. दोन्हीमध्ये वेगळी SIP सुरू ठेवण्यापेक्षा एकाच सर्वोत्तम फंडात SIP केंद्रित करणे अधिक फायदेशीर ठरेल.`
+            : `💡 <strong>Insight:</strong> Both schemes share <strong>~${overlapPct}%</strong> common holdings. Consolidating fresh SIPs into the stronger performer reduces duplication.`)
+        : overlapPct >= 25
+          ? (currentLang === 'mr'
+              ? `💡 <strong>सल्ला:</strong> या दोन फंडांमध्ये मध्यम ओव्हरलॅप आहे. काही प्रमुख बँकिंग/आयटी शेअर्स सारखे असले तरी उर्वरित पोर्टफोलिओ वेगळा आहे.`
+              : `💡 <strong>Insight:</strong> Moderate overlap in core bluechip stocks, while remaining allocation provides style diversification.`)
+          : (currentLang === 'mr'
+              ? `💡 <strong>सल्ला:</strong> अतिशय उत्तम! या दोन्ही फंडांचे शेअर्स आणि गुंतवणूक शैली पूर्णपणे वेगळी आहे, ज्यामुळे पोर्टफोलिओची जोखीम कमी होते.`
+              : `💡 <strong>Insight:</strong> Excellent diversification! Minimal stock overlap between these two schemes.`);
+
+      resBox.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-600 dark:text-slate-300">${levelBadge}</span>
+          <span class="text-base font-black ${levelColor}">${overlapPct}% Overlap</span>
+        </div>
+        <div class="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div class="h-full ${barColor} rounded-full transition-all duration-500" style="width:${Math.max(4, overlapPct)}%"></div>
+        </div>
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">${currentLang === 'mr' ? `कॉमन प्रमुख शेअर्स (${commonStocks.length} Common Top Holdings):` : `Common Top Holdings (${commonStocks.length}):`}</span>
+          <div class="flex flex-wrap gap-1">
+            ${commonStocks.length > 0
+              ? commonStocks.map(s => `<span class="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 font-semibold text-[10px] border border-indigo-200/60 dark:border-indigo-800">${escapeHtml(s)}</span>`).join('')
+              : `<span class="text-[11px] text-emerald-600 font-semibold">${currentLang === 'mr' ? 'कोणतेही प्रमुख कॉमन शेअर्स नाहीत (०% ओव्हरलॅप)' : 'No common top stocks'}</span>`
+            }
+          </div>
+        </div>
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+          ${adviceText}
+        </div>
+      `;
+    }
+
+    /*************************************************************************
+     * 6C. SMART PORTFOLIO REBALANCER (अ‍ॅसेट रिबॅलन्सिंग सल्लागार)
+     *************************************************************************/
+    function mapCategoryToRebalanceBucket(category) {
+      if (category === 'Large Cap Fund' || category === 'Index Fund') return 'Large Cap & Index';
+      if (category === 'Flexi Cap / Multi Cap' || category === 'Large & Midcap Fund') return 'Flexi & Large-Midcap';
+      if (category === 'Midcap Fund' || category === 'Smallcap Fund') return 'Midcap & Smallcap';
+      return 'ELSS & Debt/Hybrid';
+    }
+
+    function setRebalancePreset(presetKey) {
+      if (!REBALANCE_PRESETS[presetKey]) return;
+      activeRebalancePreset = presetKey;
+      ['balanced', 'aggressive', 'conservative'].forEach(k => {
+        const btn = document.getElementById('rebalBtn-' + k);
+        if (!btn) return;
+        btn.className = (k === presetKey)
+          ? 'px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 text-emerald-600 shadow-xs cursor-pointer'
+          : 'px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 cursor-pointer';
+      });
+      renderSmartRebalancer();
+    }
+
+    function renderSmartRebalancer() {
+      const gridEl = document.getElementById('rebalanceBucketsGrid');
+      const actionEl = document.getElementById('rebalanceActionSummary');
+      const sipSplitEl = document.getElementById('rebalanceSipSplitList');
+      const sipBadgeEl = document.getElementById('rebalActiveSipTotalBadge');
+      if (!gridEl || !actionEl || !sipSplitEl) return;
+
+      const preset = REBALANCE_PRESETS[activeRebalancePreset] || REBALANCE_PRESETS.balanced;
+      const bucketNames = Object.keys(preset.targets);
+      const bucketColors = {
+        'Large Cap & Index': '#2563eb',
+        'Flexi & Large-Midcap': '#059669',
+        'Midcap & Smallcap': '#e11d48',
+        'ELSS & Debt/Hybrid': '#d97706'
+      };
+
+      const bucketTotals = {
+        'Large Cap & Index': 0,
+        'Flexi & Large-Midcap': 0,
+        'Midcap & Smallcap': 0,
+        'ELSS & Debt/Hybrid': 0
+      };
+
+      let grandTotal = 0;
+      let totalActiveSip = 0;
+      portfolio.forEach(f => {
+        const val = f.units * f.currentNav;
+        grandTotal += val;
+        if (f.sipStatus !== 'stopped') totalActiveSip += Number(f.monthlySip) || 0;
+        const b = mapCategoryToRebalanceBucket(f.category);
+        bucketTotals[b] = (bucketTotals[b] || 0) + val;
+      });
+
+      const baseSipPool = totalActiveSip > 0 ? totalActiveSip : 15000;
+      if (sipBadgeEl) {
+        sipBadgeEl.textContent = `${formatINR(baseSipPool)}/${currentLang === 'mr' ? 'महिना' : 'mo'}`;
+      }
+
+      const actionsList = [];
+
+      gridEl.innerHTML = bucketNames.map(bName => {
+        const actualVal = bucketTotals[bName] || 0;
+        const actualPct = grandTotal > 0 ? (actualVal / grandTotal) * 100 : 0;
+        const targetPct = preset.targets[bName];
+        const targetVal = (grandTotal * targetPct) / 100;
+        const diffVal = targetVal - actualVal; // positive means underweight (buy more), negative means overweight
+        const diffPct = actualPct - targetPct;
+        const col = bucketColors[bName] || '#059669';
+
+        let statusBadge = '';
+        let actionLine = '';
+        if (Math.abs(diffPct) <= 3) {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">🎯 संतुलित</span>`;
+          actionLine = currentLang === 'mr' ? 'योग्य प्रमाणात आहे' : 'On Target Allocation';
+        } else if (diffPct > 3) {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">⚠️ जास्त (+${diffPct.toFixed(1)}%)</span>`;
+          actionLine = currentLang === 'mr'
+            ? `नवीन SIP कमी करा / ${formatINR(Math.abs(diffVal))} नफा सुरक्षित करा`
+            : `Reduce fresh SIP / Trim by ${formatINR(Math.abs(diffVal))}`;
+          actionsList.push(
+            currentLang === 'mr'
+              ? `• <strong>${bName}</strong> गटात आदर्श प्रमाणापेक्षा <strong>${formatINR(Math.abs(diffVal))} (+${diffPct.toFixed(1)}%)</strong> जास्त गुंतवणूक आहे. फंड विकून टॅक्स देण्यापेक्षा पुढील काही महिने या गटातील नवीन SIP कमी ठेवा.`
+              : `• <strong>${bName}</strong> is overweight by <strong>${formatINR(Math.abs(diffVal))} (+${diffPct.toFixed(1)}%)</strong>. Slow down fresh SIPs here instead of triggering exit load/tax.`
+          );
+        } else {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">➕ वाढवा (${diffPct.toFixed(1)}%)</span>`;
+          actionLine = currentLang === 'mr'
+            ? `हळूहळू +${formatINR(Math.abs(diffVal))} गुंतवणूक वाढवा`
+            : `Add +${formatINR(Math.abs(diffVal))} via SIPs`;
+          actionsList.push(
+            currentLang === 'mr'
+              ? `• <strong>${bName}</strong> गटाचे प्रमाण लक्ष्यापेक्षा कमी आहे; यात <strong>+${formatINR(Math.abs(diffVal))}</strong> ची भर पडण्यासाठी मासिक SIP किंवा टॉप-अप या गटात वळवा.`
+              : `• <strong>${bName}</strong> is underweight by <strong>${formatINR(Math.abs(diffVal))}</strong>; direct fresh SIP inflows here.`
+          );
+        }
+
+        return `
+          <div class="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col justify-between gap-2.5">
+            <div>
+              <div class="flex items-center justify-between gap-1">
+                <span class="font-extrabold text-xs flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color:${col}"></span>
+                  ${escapeHtml(bName)}
+                </span>
+                ${statusBadge}
+              </div>
+              <div class="mt-2 flex items-baseline justify-between text-xs">
+                <div>
+                  <span class="text-[10px] text-slate-400 block">${currentLang === 'mr' ? 'सध्याचे प्रमाण' : 'Current'}</span>
+                  <strong class="text-sm font-black">${actualPct.toFixed(1)}%</strong>
+                  <span class="text-[10px] text-slate-500 block">${formatINR(actualVal)}</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] text-slate-400 block">${currentLang === 'mr' ? 'आदर्श लक्ष्य' : 'Target'}</span>
+                  <strong class="text-sm font-black text-indigo-600 dark:text-indigo-400">${targetPct}%</strong>
+                  <span class="text-[10px] text-slate-500 block">${formatINR(targetVal)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden relative">
+                <div class="h-full rounded-full transition-all duration-500" style="width:${Math.min(100, actualPct)}%; background-color:${col}"></div>
+              </div>
+              <div class="text-[10px] font-bold ${Math.abs(diffPct) <= 3 ? 'text-emerald-600' : diffPct > 3 ? 'text-amber-700 dark:text-amber-300' : 'text-indigo-600 dark:text-indigo-400'}">
+                ${actionLine}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      actionEl.innerHTML = actionsList.length > 0
+        ? actionsList.join('<br/>')
+        : (currentLang === 'mr'
+            ? '🎉 अभिनंदन! तुमचा पोर्टफोलिओ निवडलेल्या जोखीम प्रोफाईलनुसार पूर्णपणे संतुलित आहे.'
+            : '🎉 Congratulations! Your portfolio is well aligned with the selected risk profile.');
+
+      sipSplitEl.innerHTML = bucketNames.map(bName => {
+        const pct = preset.targets[bName];
+        const recSip = Math.round((baseSipPool * pct) / 100);
+        return `
+          <div class="flex items-center justify-between py-1 border-b border-indigo-100/80 dark:border-slate-800 last:border-0">
+            <span class="font-semibold text-slate-700 dark:text-slate-300">${escapeHtml(bName)} (${pct}%)</span>
+            <strong class="font-black text-indigo-700 dark:text-indigo-300">${formatINR(recSip)} / महिना</strong>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /*************************************************************************
+     * 6D. 1-CLICK WHATSAPP REPORT & SINGLE-FILE PWA SUPPORT
+     *************************************************************************/
+    function generatePortfolioSummaryText() {
+      let totalInvested = 0, totalCurrent = 0, totalSip = 0, activeCount = 0, holdCount = 0;
+      portfolio.forEach(f => {
+        const cur = f.units * f.currentNav;
+        totalInvested += Number(f.invested) || 0;
+        totalCurrent += cur;
+        if (f.sipStatus === 'stopped' || Number(f.monthlySip) === 0) holdCount++;
+        else { activeCount++; totalSip += Number(f.monthlySip) || 0; }
+      });
+      const netGain = totalCurrent - totalInvested;
+      const absPct = totalInvested > 0 ? (netGain / totalInvested) * 100 : 0;
+      const xirr = computePortfolioXIRR();
+      const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+      const top3 = [...portfolio]
+        .map(f => ({ name: f.name.split('(')[0].trim(), val: f.units * f.currentNav, xirr: computeFundXIRR(f) }))
+        .sort((a, b) => b.xirr - a.xirr)
+        .slice(0, 3);
+
+      const topLines = top3.map((t, i) => `${i + 1}. ${t.name} (${formatINR(t.val)} | XIRR: +${t.xirr.toFixed(1)}%)`).join('\n');
+
+      return [
+        `📊 *म्युच्युअल फंड पोर्टफोलिओ रिपोर्ट (${todayStr})*`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `💰 *एकूण गुंतवणूक:* ${formatINR(totalInvested)}`,
+        `🏛️ *सध्याचे चालू मूल्य:* ${formatINR(totalCurrent)}`,
+        `📈 *एकूण निव्वळ नफा:* ${netGain >= 0 ? '+' : ''}${formatINR(netGain)} (${netGain >= 0 ? '+' : ''}${absPct.toFixed(2)}%)`,
+        `⚡ *पोर्टफोलिओ XIRR:* +${xirr.toFixed(2)}% वार्षिक`,
+        `🗓️ *सुरू मासिक SIP:* ${formatINR(totalSip)}/महिना (${activeCount} सुरू, ${holdCount} होल्ड)`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `🏆 *टॉप परफॉर्मिंग फंड्स (XIRR नुसार):*`,
+        topLines || '—',
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `🔗 *लाईव्ह ट्रॅकर:* AMFI Live NAV द्वारे अपडेटेड`
+      ].join('\n');
+    }
+
+    function openWhatsAppReportModal() {
+      const txtEl = document.getElementById('whatsAppReportText');
+      if (txtEl) txtEl.value = generatePortfolioSummaryText();
+      document.getElementById('whatsAppReportModal').classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeWhatsAppReportModal() {
+      document.getElementById('whatsAppReportModal').classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function sendReportToWhatsApp() {
+      const text = document.getElementById('whatsAppReportText').value || generatePortfolioSummaryText();
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    function copyWhatsAppReportText() {
+      const txtEl = document.getElementById('whatsAppReportText');
+      if (!txtEl) return;
+      txtEl.select();
+      txtEl.setSelectionRange(0, 99999);
+      try {
+        document.execCommand('copy');
+        showToast('✅ व्हॉट्सॲप रिपोर्ट क्लिपबोर्डवर कॉपी झाला!', 'success');
+      } catch (e) {
+        showToast('कॉपी करताना अडचण आली', 'error');
+      }
+    }
+
+    // PWA: manifest/icons are linked in <head>; here we register the service worker and capture the install prompt
+    function initSingleFilePWA() {
+      try {
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPwaPrompt = e;
+        });
+        if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+          navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed', err));
+        }
+      } catch (e) {}
+    }
+
+    async function triggerPwaInstall() {
+      if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        const { outcome } = await deferredPwaPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast('🎉 अ‍ॅप होम-स्क्रीनवर इन्स्टॉल होत आहे!', 'success');
+        }
+        deferredPwaPrompt = null;
+      } else {
+        document.getElementById('pwaInstallModal').classList.remove('hidden');
+      }
+    }
+
+    function closePwaInstallModal() {
+      document.getElementById('pwaInstallModal').classList.add('hidden');
     }
 
     function syncGoalWithPortfolio() {
@@ -1889,14 +2801,16 @@
       const monthlyRate = annualRate / 100 / 12;
       let regCorpus = initialCorpus, stepCorpus = initialCorpus, curSip = baseSip;
       const labels = [currentLang === 'mr' ? 'सध्या' : 'Now'], regSeries = [Math.round(initialCorpus)], stepSeries = [Math.round(initialCorpus)];
-      let goalYear = null;
+      let goalYearRegular = null;
+      let goalYearStepUp = null;
 
       for (let y = 1; y <= years; y++) {
         for (let m = 1; m <= 12; m++) {
           regCorpus = (regCorpus + baseSip) * (1 + monthlyRate);
           stepCorpus = (stepCorpus + curSip) * (1 + monthlyRate);
         }
-        if (goalYear === null && stepCorpus >= targetGoal) goalYear = y;
+        if (goalYearRegular === null && regCorpus >= targetGoal) goalYearRegular = y;
+        if (goalYearStepUp === null && stepCorpus >= targetGoal) goalYearStepUp = y;
         curSip = curSip * (1 + stepUpPct / 100);
         labels.push((currentLang === 'mr' ? 'वर्ष ' : 'Yr ') + y);
         regSeries.push(Math.round(regCorpus));
@@ -1907,12 +2821,32 @@
       document.getElementById('projStepUpVal').textContent = formatINR(stepCorpus);
       document.getElementById('projExtraVal').textContent = '+' + formatINR(stepCorpus - regCorpus);
 
-      document.getElementById('goalAchievementText').innerHTML = goalYear !== null
-        ? `अभिनंदन! <strong>${stepUpPct}% Step-Up SIP</strong> मुळे तुमचे <strong>${formatINR(targetGoal)}</strong> चे उद्दिष्ट <strong>${goalYear} वर्षांत</strong> पूर्ण होईल!`
-        : `${years} वर्षांत तुमचा कॉर्पस <strong>${formatINR(stepCorpus)}</strong> होईल.`;
+      let achievementMsg = '';
+      if (initialCorpus >= targetGoal) {
+        achievementMsg = currentLang === 'mr'
+          ? `अभिनंदन! तुमचे सध्याचे पोर्टफोलिओ मूल्यच उद्दिष्टापेक्षा जास्त आहे!`
+          : `Congratulations! Your current corpus already exceeds the target!`;
+      } else if (goalYearRegular !== null && (stepUpPct === 0 || goalYearRegular <= goalYearStepUp)) {
+        achievementMsg = currentLang === 'mr'
+          ? `छान! साध्या (Regular) SIP नेच तुमचे <strong>${formatINR(targetGoal)}</strong> चे उद्दिष्ट अवघ्या <strong>${goalYearRegular} वर्षांत</strong> पूर्ण होत आहे!`
+          : `Great! Your regular SIP achieves the <strong>${formatINR(targetGoal)}</strong> target in just <strong>${goalYearRegular} years</strong>!`;
+      } else if (goalYearStepUp !== null && stepUpPct > 0) {
+        achievementMsg = currentLang === 'mr'
+          ? `अभिनंदन! <strong>${stepUpPct}% Step-Up SIP</strong> मुळे तुमचे <strong>${formatINR(targetGoal)}</strong> चे उद्दिष्ट <strong>${goalYearStepUp} वर्षांत</strong> पूर्ण होईल (साध्या SIP पेक्षा लवकर)!`
+          : `Congratulations! With <strong>${stepUpPct}% Step-Up SIP</strong>, your target will be achieved faster in <strong>${goalYearStepUp} years</strong>!`;
+      } else {
+        achievementMsg = currentLang === 'mr'
+          ? `${years} वर्षांत तुमचा कॉर्पस <strong>${formatINR(stepCorpus)}</strong> होईल.`
+          : `Projected corpus after ${years} years will be <strong>${formatINR(stepCorpus)}</strong>.`;
+      }
 
-      if (activeTab !== 'goals') return;
-      const ctx = document.getElementById('stepUpLineChart').getContext('2d');
+      document.getElementById('goalAchievementText').innerHTML = achievementMsg;
+
+      const goalSection = document.getElementById('tabContent-goals');
+      if (!goalSection || goalSection.classList.contains('hidden')) return;
+      const canvasEl = document.getElementById('stepUpLineChart');
+      if (!canvasEl) return;
+      const ctx = canvasEl.getContext('2d');
       if (chartInstances.goal) chartInstances.goal.destroy();
       chartInstances.goal = new Chart(ctx, {
         type: 'line',
@@ -2223,6 +3157,22 @@
 
       renderAll();
     }
+
+    // Mobile: top summary (sync strip + KPI cards) only on Home; other tabs show a slim title bar
+    function updateTopSummary() {
+      const wrap = document.getElementById('homeSummary'), bar = document.getElementById('tabTitleBar');
+      if (!wrap || !bar) return;
+      const away = activeTab !== 'dashboard', mr = currentLang === 'mr';
+      wrap.classList.toggle('away', away);
+      bar.classList.toggle('show', away);
+      const lbl = document.querySelector('.mob-nav-btn[data-tab="' + activeTab + '"] span');
+      document.getElementById('tabTitleText').textContent = lbl ? lbl.textContent : '';
+      document.getElementById('tabTitleHint').textContent = mr ? '← दाबून होमवर जा' : 'Tap ← to go Home';
+      document.getElementById('tabTitleValLbl').textContent = mr ? 'सध्याचे मूल्य' : 'Current value';
+      document.getElementById('tabTitleValue').textContent = document.getElementById('kpiCurrentValue').textContent;
+    }
+    const renderAllBase = renderAll;
+    renderAll = function () { renderAllBase(); updateTopSummary(); };
 
     function setMobileViewMode(mode) {
       mobileViewMode = mode;
