@@ -819,6 +819,28 @@
     <!-- TAB 6: SETTINGS, DATA MANAGEMENT & NEW USER CLEAR                   -->
     <!-- =================================================================== -->
     <section id="tabContent-settings" class="tab-panel hidden space-y-4">
+    <div id="driveCard" class="app-card p-5 space-y-3">
+      <div>
+        <h3 class="text-base font-extrabold">☁️ <span data-mr="Google Drive बॅकअप" data-en="Google Drive Backup">Google Drive बॅकअप</span></h3>
+        <p class="text-xs text-slate-500 mt-0.5" data-mr="बॅकअप तुमच्या Drive च्या लपलेल्या अॅप-फोल्डरमध्ये जातो (इतर फाईल्स अॅपला दिसत नाहीत). ताजी फाईल + शेवटच्या ५ तारीखवार प्रती." data-en="Backups go to a hidden app folder in your Drive (the app cannot see your other files). Latest file + last 5 dated copies."></p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold mb-1">Google OAuth Client ID</label>
+        <input id="driveClientId" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx.apps.googleusercontent.com" onchange="saveDriveClientId(this.value)" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold mb-1" data-mr="Gmail पत्ता (ऐच्छिक – खाते निवडण्याचे पान टाळण्यासाठी)" data-en="Gmail address (optional – skips the account chooser)">Gmail</label>
+        <input id="driveEmail" type="email" autocomplete="off" spellcheck="false" placeholder="name@gmail.com" onchange="saveDriveEmail(this.value)" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" />
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="driveBackup()" class="px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer" data-mr="⬆ Drive ला बॅकअप" data-en="⬆ Back up to Drive"></button>
+        <button type="button" onclick="driveShowRestore()" class="px-3 py-3 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold cursor-pointer" data-mr="⬇ Drive मधून रिस्टोअर" data-en="⬇ Restore from Drive"></button>
+      </div>
+      <p class="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2" data-mr="💡 “Choose an account” पान आल्यावर आधी एकदा Back दाबा, मग खाते निवडा." data-en="💡 If “Choose an account” appears, press Back once first, then pick the account."></p>
+      <div id="driveStatus" class="text-xs text-slate-500"></div>
+      <div id="driveRestoreList" class="space-y-2"></div>
+    </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="app-card p-5 space-y-4">
           <div>
@@ -3255,6 +3277,7 @@
         Chart.defaults.borderColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)';
       }
       renderAllBase(); updateTopSummary();
+      if (typeof renderDriveCard === 'function') renderDriveCard();
     };
 
     /* Android system Back button:
@@ -3438,6 +3461,157 @@
         }
       };
       reader.readAsText(file);
+    }
+
+    /* ================= Google Drive backup (drive.appdata scope; token kept in memory only) ================= */
+    const DRIVE_CID_KEY = 'mf_gdrive_client_id', DRIVE_LAST_KEY = 'mf_gdrive_last';
+    const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+    const DRIVE_KEEP = 5, DRIVE_EMAIL_KEY = 'mf_gdrive_email', DRIVE_HASH_KEY = 'mf_gdrive_hash';
+    let driveToken = null, driveTokenExp = 0;
+    const tr = (mr, en) => currentLang === 'mr' ? mr : en;
+
+    function renderDriveCard() {
+      const card = document.getElementById('driveCard'); if (!card) return;
+      card.querySelectorAll('[data-mr]').forEach(e => { e.textContent = tr(e.dataset.mr, e.dataset.en); });
+      const inp = document.getElementById('driveClientId');
+      if (inp && document.activeElement !== inp) inp.value = localStorage.getItem(DRIVE_CID_KEY) || '';
+      const em = document.getElementById('driveEmail');
+      if (em && document.activeElement !== em) em.value = localStorage.getItem(DRIVE_EMAIL_KEY) || '';
+      if (navigator.onLine && localStorage.getItem(DRIVE_CID_KEY)) loadGsi().catch(() => {});   // pre-load so the sign-in popup opens instantly
+      const last = localStorage.getItem(DRIVE_LAST_KEY);
+      setDriveStatus(last ? tr('शेवटचा Drive बॅकअप: ', 'Last Drive backup: ') + new Date(last).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : tr('अजून Drive बॅकअप घेतलेला नाही.', 'No Drive backup yet.'));
+    }
+    function setDriveStatus(t) { const e = document.getElementById('driveStatus'); if (e) e.textContent = t; }
+    function saveDriveEmail(v) { v = (v || '').trim(); if (v) localStorage.setItem(DRIVE_EMAIL_KEY, v); else localStorage.removeItem(DRIVE_EMAIL_KEY); }
+    function hashStr(t) { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ':' + h; }
+    async function rememberDriveEmail() {
+      if (localStorage.getItem(DRIVE_EMAIL_KEY)) return;
+      const r = await gfetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)');
+      const mail = ((await r.json()).user || {}).emailAddress;
+      if (mail) { localStorage.setItem(DRIVE_EMAIL_KEY, mail); renderDriveCard(); }
+    }
+    function saveDriveClientId(v) { localStorage.setItem(DRIVE_CID_KEY, (v || '').trim()); driveToken = null; showToast(tr('Client ID जतन केला', 'Client ID saved'), 'success'); }
+
+    function loadGsi() {
+      return new Promise((resolve, reject) => {
+        if (window.google && google.accounts && google.accounts.oauth2) return resolve();
+        const sc = document.createElement('script');
+        sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+        sc.onload = () => resolve(); sc.onerror = () => reject(new Error('OFFLINE'));
+        document.head.appendChild(sc);
+      });
+    }
+    function driveAuth() {
+      return new Promise((resolve, reject) => {
+        const cid = (localStorage.getItem(DRIVE_CID_KEY) || '').trim();
+        if (!cid) return reject(new Error('NO_CID'));
+        if (driveToken && Date.now() < driveTokenExp - 60000) return resolve(driveToken);
+        const hint = (localStorage.getItem(DRIVE_EMAIL_KEY) || '').trim();
+        loadGsi().then(() => {
+          const tc = google.accounts.oauth2.initTokenClient({
+            client_id: cid, scope: DRIVE_SCOPE,
+            callback: r => {
+              if (r.error) { if (hint) localStorage.removeItem(DRIVE_EMAIL_KEY); return reject(new Error(r.error)); }
+              driveToken = r.access_token; driveTokenExp = Date.now() + (r.expires_in || 3600) * 1000;
+              resolve(driveToken);
+              rememberDriveEmail().catch(() => {});
+            },
+            error_callback: e => {
+              const t = (e && e.type) || 'popup_closed';
+              if (hint && t !== 'popup_closed') localStorage.removeItem(DRIVE_EMAIL_KEY);   // next tap shows the normal account page
+              reject(new Error(t));
+            }
+          });
+          tc.requestAccessToken(hint ? { hint, prompt: '' } : {});
+        }).catch(reject);
+      });
+    }
+    async function gfetch(url, opts = {}) {
+      const res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + driveToken } });
+      if (res.status === 401) driveToken = null;
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res;
+    }
+    async function driveList() {
+      const r = await gfetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=100&fields=files(id,name,modifiedTime)');
+      return (await r.json()).files || [];
+    }
+    function driveUpsert(name, content, existing) {
+      const b = 'sipb' + Date.now() + Math.random().toString(36).slice(2);
+      const meta = existing ? {} : { name, parents: ['appDataFolder'] };
+      const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${b}--`;
+      const url = existing ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart` : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+      return gfetch(url, { method: existing ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body });
+    }
+    function driveError(e) {
+      const m = String(e && e.message || e);
+      if (m === 'NO_CID') return tr('आधी Google Client ID टाका.', 'Enter your Google Client ID first.');
+      if (m === 'OFFLINE') return tr('इंटरनेट नाही, Google लोड होऊ शकले नाही.', 'No internet; could not load Google sign-in.');
+      if (/popup|access_denied|interaction|login/.test(m)) return tr('Google लॉगिन झाले नाही. “Choose an account” आल्यावर आधी एकदा Back दाबा, मग खाते निवडा आणि पुन्हा प्रयत्न करा.', 'Google sign-in did not complete. If “Choose an account” appears, press Back once, then pick the account and try again.');
+      return tr('Drive त्रुटी: ', 'Drive error: ') + m;
+    }
+
+    async function driveBackup() {
+      if (!portfolio.length) { showToast(tr('पोर्टफोलिओ रिकामा आहे; बॅकअप थांबवला.', 'Portfolio is empty; backup stopped.'), 'error'); return; }
+      try {
+        setDriveStatus(tr('बॅकअप सुरू आहे…', 'Backing up…'));
+        const hash = hashStr(JSON.stringify({ portfolio, transactions }));
+        await driveAuth();
+        const files = await driveList();
+        const find = n => files.find(f => f.name === n);
+        if (hash === localStorage.getItem(DRIVE_HASH_KEY) && find('sip-latest.json')) {
+          renderDriveCard();
+          showToast(tr('कोणताही बदल नाही; Drive बॅकअप आधीच अद्ययावत आहे.', 'No changes; Drive backup is already up to date.'), 'success');
+          return;
+        }
+        const body = JSON.stringify({ version: 4, exportDate: new Date().toISOString(), portfolio, transactions });
+        const today = 'sip-' + new Date().toISOString().slice(0, 10) + '.json';
+        const dated = files.map(f => f.name).filter(n => /^sip-\d{4}-\d{2}-\d{2}\.json$/.test(n));
+        if (!dated.includes(today)) dated.push(today);
+        dated.sort();
+        const excess = [];
+        while (dated.length > DRIVE_KEEP) excess.push(dated.shift());
+        await Promise.all([
+          driveUpsert('sip-latest.json', body, find('sip-latest.json')),
+          driveUpsert(today, body, find(today)),
+          ...excess.map(find).filter(Boolean).map(f => gfetch('https://www.googleapis.com/drive/v3/files/' + f.id, { method: 'DELETE' }))
+        ]);
+        localStorage.setItem(DRIVE_HASH_KEY, hash);
+        localStorage.setItem(DRIVE_LAST_KEY, new Date().toISOString());
+        renderDriveCard();
+        showToast(tr('✅ Drive बॅकअप पूर्ण झाला!', '✅ Drive backup complete!'), 'success');
+      } catch (e) { renderDriveCard(); showToast(driveError(e), 'error'); }
+    }
+
+    async function driveShowRestore() {
+      const box = document.getElementById('driveRestoreList');
+      try {
+        setDriveStatus(tr('यादी मिळवत आहे…', 'Loading list…'));
+        await driveAuth();
+        const files = (await driveList()).filter(f => /^sip-(latest|\d{4}-\d{2}-\d{2})\.json$/.test(f.name))
+          .sort((a, b) => (a.name === 'sip-latest.json' ? -1 : b.name === 'sip-latest.json' ? 1 : b.name.localeCompare(a.name)));
+        renderDriveCard();
+        if (!files.length) { box.textContent = tr('Drive मध्ये बॅकअप सापडला नाही.', 'No backup found in Drive.'); return; }
+        box.innerHTML = files.map(f => `<button type="button" data-id="${f.id}" class="drive-restore-btn w-full flex justify-between items-center gap-2 px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-left cursor-pointer"><span>${f.name === 'sip-latest.json' ? tr('ताजा बॅकअप', 'Latest backup') : f.name.slice(4, 14)}</span><span class="font-normal text-slate-500">${new Date(f.modifiedTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span></button>`).join('');
+        box.querySelectorAll('.drive-restore-btn').forEach(b => b.onclick = () => openConfirmDialog(
+          tr('Drive मधून रिस्टोअर?', 'Restore from Drive?'),
+          tr('सध्याचा डेटा या बॅकअपने बदलला जाईल (सध्याच्या डेटाची सुरक्षा-प्रत या फोनवर जतन होईल).', 'Current data will be replaced by this backup (a safety copy of current data is kept on this phone).'),
+          () => driveRestore(b.dataset.id)));
+      } catch (e) { renderDriveCard(); showToast(driveError(e), 'error'); }
+    }
+    async function driveRestore(id) {
+      try {
+        await driveAuth();
+        const parsed = await (await gfetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).json();
+        const list = Array.isArray(parsed) ? parsed : (parsed && (parsed.portfolio || parsed.funds));
+        if (!Array.isArray(list)) throw new Error('INVALID');
+        try { localStorage.setItem('mf_pre_restore_backup', JSON.stringify({ at: new Date().toISOString(), portfolio, transactions })); } catch (e) {}
+        portfolio = migratePortfolioCategories(list);
+        transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];
+        saveDataToStorage(); renderAll();
+        document.getElementById('driveRestoreList').innerHTML = '';
+        showToast(tr('✅ Drive मधून रिस्टोअर झाले!', '✅ Restored from Drive!'), 'success');
+      } catch (e) { showToast(String(e.message) === 'INVALID' ? tr('अवैध बॅकअप फाईल', 'Invalid backup file') : driveError(e), 'error'); }
     }
 
     function openConfirmDialog(title, message, onConfirm) {
