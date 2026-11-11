@@ -1,29 +1,13 @@
 <!DOCTYPE html>
 <html lang="mr">
 <head>
-<!--
-  =============================================================================
-  App Name: Mutual Fund SIP Tracker & Portfolio Dashboard
-  Developer: श्री. सोमनाथ गायकवाड सर (वेब डेव्हलोपर)
-  Description: प्रगत, मॉडर्न, मोबाईल-फ्रेंडली आणि ऑटोमॅटिक लाईव्ह AMFI NAV सिंक 
-               करणारे म्युच्युअल फंड्स, SIP, XIRR आणि उद्दिष्ट नियोजन वेब ॲप.
-  
-  ॲपची प्रमुख वैशिष्ट्ये व माहिती:
-    1. लाईव्ह NAV व पोर्टफोलिओ ट्रॅकिंग: AMFI API द्वारे सर्व म्युच्युअल फंड्सचे दैनंदिन लाईव्ह NAV स्वयंचलितपणे अपडेट होतात.
-    2. XIRR आणि नफा मोजणी: प्रत्येक फंडाची आणि संपूर्ण पोर्टफोलिओची अचूक वार्षिक वाढ (XIRR %) व नफा/तोटा (Absolute Return) मोजण्याची सुविधा.
-    3. स्वतंत्र सेबी श्रेणी (Sebi Categories): Large Cap, Flexi Cap, Midcap, Smallcap, Index, ELSS व Debt फंड्सचे स्वतंत्र वर्गीकरण.
-    4. स्मार्ट उद्दिष्ट व Step-Up SIP प्लॅनर: दीर्घकालीन आर्थिक उद्दिष्टे (उदा. ५० लाख कॉर्पस) साध्या व Step-Up SIP च्या माध्यमातून किती वर्षांत पूर्ण होतील याचे सिम्युलेटर.
-    5. परफॉर्मन्स रँकिंग व फंड ओव्हरलॅप: सर्वोत्तम फंड्सचे लीडरबोर्ड आणि एकाच प्रकारच्या शेअर्समधील डुप्लिकेशन तपासणारे ओव्हरलॅप ॲनालायझर.
-    6. PWA मोबाईल इन्स्टॉल व व्हॉट्सॲप रिपोर्ट: मोबाईलच्या होम स्क्रीनवर ॲप म्हणून इन्स्टॉल करण्याची सोय आणि एका क्लिकवर रिपोर्ट व्हॉट्सॲपवर शेअर करण्याची सुविधा.
-  =============================================================================
--->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="SIP Tracker" />
+  <meta name="apple-mobile-web-app-title" content="SIP ट्रॅकर" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -140,7 +124,6 @@
       #tabTitleBar.show { display: flex; }
     }
       /* ---- Mobile polish ---- */
-    .fab-add { display: none; }
     .app-card.border-l-4 { border-left-width: 1px !important; box-shadow: inset 4px 0 0 0 var(--acc, #64748b), 0 4px 20px -2px rgba(15,23,42,.04); }
     .app-card.border-l-amber-500{--acc:#f59e0b}
     .app-card.border-l-emerald-600{--acc:#059669}
@@ -148,22 +131,30 @@
     .app-card.border-l-slate-700{--acc:#334155}
     .app-card.border-l-teal-600{--acc:#0d9488}
     html.pwa-installed [onclick*="triggerPwaInstall"] { display: none !important; }
-    @media (max-width: 639px) {
-      header.sticky { position: static !important; }
-      #appSubtitle, header h1 + span { display: none; }
-    }
+    header h1 + span { display: none; }              /* AMFI badge removed */
+    @media (max-width: 639px) { #appSubtitle { display: none; } }
     @media (max-width: 767px) {
+      #tabTitleBar { position: sticky; top: var(--hdr-h, 0px); z-index: 30; padding: .5rem .75rem !important; }
+      #tabTitleHint { display: none; }
       .chip-row { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
       .chip-row::-webkit-scrollbar { display: none; }
       .chip-row > * { flex-shrink: 0; white-space: nowrap; }
-      .fab-add { display: flex; position: fixed; right: 16px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 40; width: 54px; height: 54px; border-radius: 18px; background: #4f46e5; color: #fff; font-size: 20px; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(79,70,229,.4); cursor: pointer; }
     }
+      @media (max-width: 767px) {
+      html[data-tab="transactions"] #headerActions, html[data-tab="analytics"] #headerActions,
+      html[data-tab="goals"] #headerActions, html[data-tab="settings"] #headerActions { display: none; }
+    }
+    .num-ctrl { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .num-ctrl button { width: 40px; height: 40px; border-radius: 12px; background: #f1f5f9; color: #334155; font-size: 18px; font-weight: 800; cursor: pointer; }
+    .num-ctrl input { flex: 1; min-width: 0; height: 40px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 0 10px; text-align: center; font-weight: 700; background: #fff; color: #0f172a; }
+    html.dark .num-ctrl button { background: #1e293b; color: #e2e8f0; }
+    html.dark .num-ctrl input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white overflow-x-hidden pb-20 md:pb-6">
 
   <!-- Toast Notification Container -->
-  <div id="toastContainer" class="fixed top-16 right-4 z-[90] flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)] pointer-events-none"></div>
+  <div id="toastContainer" class="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)] pointer-events-none"></div>
 
   <!-- Custom Confirmation Dialog Modal (Replaces native confirm/alert) -->
   <div id="confirmDialogModal" class="fixed inset-0 z-[80] hidden bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4" onclick="if(event.target===this)closeConfirmDialog()">
@@ -217,7 +208,7 @@
       </div>
 
       <!-- Row 2 on Mobile: Primary Action Buttons nicely fitted side-by-side -->
-      <div class="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+      <div id="headerActions" class="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
         <button id="syncNavBtn" onclick="syncAllLiveNAVs()" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer">
           <i id="syncIcon" class="fa-solid fa-arrows-rotate"></i>
           <span data-i18n="syncNavBtn">लाईव्ह NAV अपडेट</span>
@@ -493,7 +484,7 @@
               🟢 <span id="statusActiveLabel">सुरू SIP</span>
             </button>
             <button onclick="setStatusFilter('stopped')" data-status="stopped" class="status-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 cursor-pointer">
-              ⏸️ <span id="statusStoppedLabel">बंद SIP</span>
+              ⏸️ <span id="statusStoppedLabel">बंद SIP (Hold)</span>
             </button>
           </div>
 
@@ -679,7 +670,7 @@
             <!-- Category Duplication / Crowd Alerts -->
             <div>
               <h4 class="text-xs font-extrabold mb-2 flex items-center gap-1.5">
-                <i class="fa-solid fa-Clone text-amber-500"></i>
+                <i class="fa-solid fa-clone text-amber-500"></i>
                 <span data-i18n="catCrowdTitle">श्रेणी डुप्लिकेशन तपासणी (Category Overlap)</span>
               </h4>
               <div id="categoryOverlapAlerts" class="space-y-2 text-xs"></div>
@@ -895,7 +886,7 @@
   </main>
 
   <!-- Mobile Bottom Navigation Bar (Visible on Mobile screens) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-lg">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-center justify-around shadow-lg">
     <button onclick="switchTab('dashboard')" data-tab="dashboard" class="mob-nav-btn text-emerald-600 flex flex-col items-center gap-0.5 py-1 px-2 text-[10px] font-extrabold cursor-pointer">
       <i class="fa-solid fa-house text-sm"></i> <span data-i18n="mobHome">होम</span>
     </button>
@@ -1951,7 +1942,7 @@
       // Filter Counts
       document.getElementById('statusAllLabel').textContent = (currentLang === 'mr' ? 'सर्व फंड्स' : 'All Funds') + ` (${portfolio.length})`;
       document.getElementById('statusActiveLabel').textContent = (currentLang === 'mr' ? 'सुरू SIP' : 'Active SIP') + ` (${activeCount})`;
-      document.getElementById('statusStoppedLabel').textContent = (currentLang === 'mr' ? 'बंद SIP' : 'Hold SIP') + ` (${stoppedCount})`;
+      document.getElementById('statusStoppedLabel').textContent = (currentLang === 'mr' ? 'बंद SIP (Hold)' : 'Hold SIP') + ` (${stoppedCount})`;
 
       renderQuickHoldings(sortedByVal.slice(0, 6));
       renderPortfolioHoldings();
@@ -3202,6 +3193,7 @@
     function updateTopSummary() {
       const wrap = document.getElementById('homeSummary'), bar = document.getElementById('tabTitleBar');
       if (!wrap || !bar) return;
+      document.documentElement.dataset.tab = activeTab;
       const away = activeTab !== 'dashboard', mr = currentLang === 'mr';
       wrap.classList.toggle('away', away);
       bar.classList.toggle('show', away);
@@ -3211,8 +3203,59 @@
       document.getElementById('tabTitleValLbl').textContent = mr ? 'सध्याचे मूल्य' : 'Current value';
       document.getElementById('tabTitleValue').textContent = document.getElementById('kpiCurrentValue').textContent;
     }
+    (function trackHeaderHeight() {
+      const hdr = document.querySelector('header'); if (!hdr) return;
+      const setH = () => document.documentElement.style.setProperty('--hdr-h', hdr.offsetHeight + 'px');
+      setH(); window.addEventListener('resize', setH);
+      if (window.ResizeObserver) new ResizeObserver(setH).observe(hdr);
+    })();
+    const baseSwitchForScroll = switchTab;
+    switchTab = function (t) { baseSwitchForScroll(t); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+    // Goals: type an exact value, or use - / + next to each slider
+    const goalRanges = Array.from(document.querySelectorAll('input[type="range"][oninput*="calculateStepUpGoal"]'));
+    const goalCtrls = [];
+    goalRanges.forEach(r => {
+      r.dataset.step = r.step || '1';
+      const unit = Number(r.dataset.step) || 1;
+      const wrap = document.createElement('div');
+      wrap.className = 'num-ctrl';
+      wrap.innerHTML = '<button type="button" aria-label="Decrease">−</button><input type="text" inputmode="decimal" aria-label="Value"><button type="button" aria-label="Increase">+</button>';
+      const minus = wrap.children[0], inp = wrap.children[1], plus = wrap.children[2];
+      const apply = v => {
+        if (!isFinite(v)) { refreshGoalCtrls(); return; }
+        v = Math.max(Number(r.min), v);
+        if (v > Number(r.max)) r.max = v;
+        r.step = 'any'; r.value = v;
+        calculateStepUpGoal();
+      };
+      minus.onclick = () => apply(Number(r.value) - unit);
+      plus.onclick = () => apply(Number(r.value) + unit);
+      inp.addEventListener('change', () => apply(parseFloat(inp.value.replace(/[^0-9.]/g, ''))));
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+      const restoreStep = () => { r.step = r.dataset.step; };
+      r.addEventListener('pointerdown', restoreStep);
+      r.addEventListener('touchstart', restoreStep, { passive: true });
+      r.parentNode.insertBefore(wrap, r);
+      goalCtrls.push([r, inp]);
+    });
+    function refreshGoalCtrls() {
+      goalCtrls.forEach(([r, inp]) => { if (document.activeElement !== inp) inp.value = String(Math.round(Number(r.value) * 100) / 100); });
+    }
+    const baseCalcGoal = calculateStepUpGoal;
+    calculateStepUpGoal = function () { baseCalcGoal(); refreshGoalCtrls(); };
+    const baseSyncGoal = syncGoalWithPortfolio;
+    syncGoalWithPortfolio = function () { goalRanges.forEach(r => { r.step = 'any'; }); baseSyncGoal(); };
+    refreshGoalCtrls();
+
     const renderAllBase = renderAll;
-    renderAll = function () { renderAllBase(); updateTopSummary(); };
+    renderAll = function () {
+      if (window.Chart) {
+        Chart.defaults.color = isDarkMode ? '#94a3b8' : '#475569';
+        Chart.defaults.borderColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)';
+      }
+      renderAllBase(); updateTopSummary();
+    };
 
     /* Android system Back button:
        1) open dialog/menu -> close it, 2) other tab -> go Home, 3) on Home -> browser/app exits normally */
@@ -3424,6 +3467,5 @@
       setTimeout(() => t.remove(), 3200);
     }
   </script>
-<button type="button" class="fab-add" onclick="openFundModal()" aria-label="नवीन फंड जोडा"><i class="fa-solid fa-plus"></i></button>
 </body>
 </html>
