@@ -822,7 +822,7 @@
     <div id="driveCard" class="app-card p-5 space-y-3">
       <div>
         <h3 class="text-base font-extrabold">☁️ <span data-mr="Google Drive बॅकअप" data-en="Google Drive Backup">Google Drive बॅकअप</span></h3>
-        <p class="text-xs text-slate-500 mt-0.5" data-mr="बॅकअप तुमच्या Drive च्या लपलेल्या अॅप-फोल्डरमध्ये जातो (इतर फाईल्स अॅपला दिसत नाहीत). ताजी फाईल + शेवटच्या ५ तारीखवार प्रती." data-en="Backups go to a hidden app folder in your Drive (the app cannot see your other files). Latest file + last 5 dated copies."></p>
+        <p class="text-xs text-slate-500 mt-0.5" data-mr="तुमच्या Drive मध्ये “SIP Tracker Backup” नावाचे फोल्डर तयार होते. ताजी फाईल + शेवटच्या ५ तारीखवार प्रती. अॅप फक्त स्वतः बनवलेल्या फाईल्स पाहू शकतो." data-en="A “SIP Tracker Backup” folder is created in your Drive: latest file + last 5 dated copies. The app can only see files it created itself."></p>
       </div>
       <div>
         <label class="block text-xs font-bold mb-1">Google OAuth Client ID</label>
@@ -3465,7 +3465,9 @@
 
     /* ================= Google Drive backup (drive.appdata scope; token kept in memory only) ================= */
     const DRIVE_CID_KEY = 'mf_gdrive_client_id', DRIVE_LAST_KEY = 'mf_gdrive_last';
-    const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+    const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';   // visible folder; app only sees files it created
+    const DRIVE_FOLDER = 'SIP Tracker Backup';
+    let driveFolderId = null;
     const DRIVE_KEEP = 5, DRIVE_EMAIL_KEY = 'mf_gdrive_email', DRIVE_HASH_KEY = 'mf_gdrive_hash';
     let driveToken = null, driveTokenExp = 0;
     const tr = (mr, en) => currentLang === 'mr' ? mr : en;
@@ -3532,13 +3534,22 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res;
     }
+    async function driveFolder() {
+      const q = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='" + DRIVE_FOLDER + "' and trashed=false");
+      const found = ((await (await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&pageSize=1`)).json()).files || []);
+      if (found.length) return (driveFolderId = found[0].id);
+      const c = await gfetch('https://www.googleapis.com/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: DRIVE_FOLDER, mimeType: 'application/vnd.google-apps.folder' }) });
+      return (driveFolderId = (await c.json()).id);
+    }
     async function driveList() {
-      const r = await gfetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=100&fields=files(id,name,modifiedTime)');
+      const id = await driveFolder();
+      const q = encodeURIComponent(`'${id}' in parents and trashed=false`);
+      const r = await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=100&fields=files(id,name,modifiedTime)`);
       return (await r.json()).files || [];
     }
     function driveUpsert(name, content, existing) {
       const b = 'sipb' + Date.now() + Math.random().toString(36).slice(2);
-      const meta = existing ? {} : { name, parents: ['appDataFolder'] };
+      const meta = existing ? {} : { name, parents: [driveFolderId] };
       const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${b}--`;
       const url = existing ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart` : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
       return gfetch(url, { method: existing ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body });
