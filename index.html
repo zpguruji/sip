@@ -819,6 +819,17 @@
     <!-- TAB 6: SETTINGS, DATA MANAGEMENT & NEW USER CLEAR                   -->
     <!-- =================================================================== -->
     <section id="tabContent-settings" class="tab-panel hidden space-y-4">
+    <div id="casCard" class="app-card p-5 space-y-3">
+      <div>
+        <h3 class="text-base font-extrabold">📄 CAS Excel इम्पोर्ट / Import CAS</h3>
+        <p class="text-xs text-slate-500 mt-0.5">CAMS / KFintech / MF Central चा “Detailed” CAS (.xlsx) निवडा. खरे युनिट्स, गुंतवणूक आणि सर्व व्यवहार एका टॅपमध्ये भरले जातात. फाईल फोनमध्येच वाचली जाते, कुठेही अपलोड होत नाही.<br>Pick the “Detailed” CAS (.xlsx). Units, invested amount and transactions are filled in one tap; the file is read on your device only.</p>
+      </div>
+      <label class="block">
+        <span class="inline-block px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer">📂 CAS .xlsx निवडा / Choose file</span>
+        <input type="file" id="casFileInput" accept=".xlsx,.xls" class="hidden" onchange="importCasFile(this.files[0]); this.value=''" />
+      </label>
+      <div id="casStatus" class="text-xs text-slate-500"></div>
+    </div>
     <div id="driveCard" class="app-card p-5 space-y-3">
       <div>
         <h3 class="text-base font-extrabold">☁️ <span data-mr="Google Drive बॅकअप" data-en="Google Drive Backup">Google Drive बॅकअप</span></h3>
@@ -1048,7 +1059,18 @@
             </div>
           </div>
 
-          <!-- Sticky Bottom Footer inside Form -->
+          <div id="histBlock" class="p-3 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 space-y-2">
+          <label class="flex items-start gap-2 text-xs font-extrabold cursor-pointer">
+            <input type="checkbox" id="formAutoHistory" checked onchange="toggleAutoHistory(this.checked)" class="accent-emerald-600 w-4 h-4 mt-0.5" />
+            <span>📈 SIP इतिहास आपोआप मोजा (शिफारस) <span class="block font-normal text-[11px] text-slate-500">सुरू तारखेपासून प्रत्येक महिन्याच्या हप्त्याचा त्या दिवसाचा NAV AMFI इतिहासावरून घेऊन युनिट्स, गुंतवणूक आणि XIRR अचूक मोजले जातात. वरील रक्कम/युनिट्स टाकण्याची गरज नाही.</span></span>
+          </label>
+          <div id="histFields" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div><label class="block text-[11px] font-bold mb-1">मासिक SIP रक्कम (₹)</label><input type="number" step="any" min="0" id="formHistSipInput" placeholder="5000" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" /></div>
+            <div><label class="block text-[11px] font-bold mb-1">एकरकमी (Lump sum) सुरुवातीला (₹) – ऐच्छिक</label><input type="number" step="any" min="0" id="formHistLumpInput" placeholder="0" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" /></div>
+            <div><label class="block text-[11px] font-bold mb-1">शेवटचा SIP हप्ता – फक्त बंद SIP साठी</label><input type="date" id="formEndDateInput" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" /></div>
+          </div>
+        </div>
+        <!-- Sticky Bottom Footer inside Form -->
           <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900 pb-1">
             <button type="button" onclick="closeFundModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-semibold cursor-pointer" data-i18n="cancelBtn">रद्द करा</button>
             <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md cursor-pointer">
@@ -1091,7 +1113,7 @@
             </div>
             <div>
               <label class="block text-xs font-bold mb-1">तारीख (Date) *</label>
-              <input type="date" id="txDateInput" required class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent" />
+              <input type="date" id="txDateInput" onchange="autoFillTxNav()" required class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent" />
             </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1273,10 +1295,10 @@
       '118834': ['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'SBI', 'L&T', 'Infosys', 'Reliance Industries', 'Max Financial', 'Lupin', 'Prestige Estates'],
       '119544': ['HDFC Bank', 'ICICI Bank', 'Infosys', 'Reliance Industries', 'L&T', 'NTPC', 'Bharti Airtel', 'Sun Pharma', 'Tata Motors', 'Kotak Bank'],
       '118803': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'NTPC', 'Infosys', 'Axis Bank', 'SBI', 'L&T', 'Tata Motors', 'Coal India'],
-      '119609': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Axis Bank', 'Infosys', 'TCS', 'Bharti Airtel', 'NTPC', 'Maruti Suzuki', 'CG Power'],
+      '118473': ['HDFC Bank', 'ICICI Bank', 'Reliance Industries', 'Axis Bank', 'Infosys', 'TCS', 'Bharti Airtel', 'NTPC', 'Maruti Suzuki', 'CG Power'],
       '118778': ['Voltamp Transformers', 'Multi Commodity Exchange', 'HDFC Bank', 'Apar Industries', 'Tejas Networks', 'Karur Vysya Bank', 'BHEL', 'Dixon Tech', 'Cyient', 'Kirloskar Bros'],
       '120823': ['Reliance Industries', 'HDFC Bank', 'Adani Power', 'Jio Financial', 'ITC', 'Aurobindo Pharma', 'SAIL', 'LIC', 'Tata Power', 'Samvardhana Motherson'],
-      '119604': ['Persistent Systems', 'Coforge', 'Dixon Tech', 'Trent', 'Indian Hotels', 'Cummins India', 'Solar Industries', 'Lupin', 'Federal Bank', 'Max Healthcare'],
+      '140228': ['Persistent Systems', 'Coforge', 'Dixon Tech', 'Trent', 'Indian Hotels', 'Cummins India', 'Solar Industries', 'Lupin', 'Federal Bank', 'Max Healthcare'],
       '119568': ['91-Day Treasury Bill', 'NABARD CP', 'SIDBI CD', 'HDFC Bank CD', 'Reliance Retail CP', 'REC Bonds', 'NTPC CP', 'ICICI Sec CP']
     };
 
@@ -1303,8 +1325,8 @@
       '120823': { nav: 650.00, name: 'Quant Multi Cap Fund (Active Direct Growth)' },
       '120465': { nav: 73.40, name: 'Axis Large Cap Fund (Direct Growth)' },
       '112277': { nav: 73.40, name: 'Axis Large Cap Fund - Growth' },
-      '119609': { nav: 358.27, name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)' },
-      '119604': { nav: 100.00, name: 'Edelweiss Mid Cap Fund (Direct Growth)' },
+      '118473': { nav: 178.93, name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)' },
+      '140228': { nav: 119.09, name: 'Edelweiss Mid Cap Fund (Direct Growth)' },
       '119568': { nav: 400.00, name: 'Aditya Birla Sun Life Liquid Fund (Direct Growth)' }
     };
 
@@ -1319,8 +1341,8 @@
       { id: 'f7', name: 'Nippon India Small Cap Fund (Direct Growth)', schemeCode: '118778', category: 'Smallcap Fund', sipStatus: 'active', monthlySip: 3000, invested: 72996, targetSnapshotValue: 80446, units: 437.2065, currentNav: 184.00, navDate: 'Live AMFI', startDate: '2024-01-15', needsUnitCalibration: true },
       { id: 'f8', name: 'Quant Multi Cap Fund (Active Direct Growth)', schemeCode: '120823', category: 'Flexi Cap / Multi Cap', sipStatus: 'stopped', monthlySip: 0, invested: 63997, targetSnapshotValue: 69124, units: 106.3446, currentNav: 650.00, navDate: 'Live AMFI', startDate: '2024-02-10', needsUnitCalibration: true },
       { id: 'f9', name: 'Axis Large Cap Fund (Direct Growth)', schemeCode: '120465', category: 'Large Cap Fund', sipStatus: 'stopped', monthlySip: 0, invested: 40056, targetSnapshotValue: 55728, units: 759.2371, currentNav: 73.40, navDate: 'Live AMFI', startDate: '2023-09-07', needsUnitCalibration: true },
-      { id: 'f10', name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)', schemeCode: '119609', category: 'ELSS (Tax Saver)', sipStatus: 'stopped', monthlySip: 0, invested: 19999, targetSnapshotValue: 52130, units: 145.5048, currentNav: 358.27, navDate: 'Live AMFI', startDate: '2020-08-15', needsUnitCalibration: true },
-      { id: 'f11', name: 'Edelweiss Mid Cap Fund (Direct Growth)', schemeCode: '119604', category: 'Midcap Fund', sipStatus: 'stopped', monthlySip: 0, invested: 39998, targetSnapshotValue: 39921, units: 399.2100, currentNav: 100.00, navDate: 'Live AMFI', startDate: '2024-08-10', needsUnitCalibration: true },
+      { id: 'f10', name: 'Bandhan ELSS Tax Saver Fund (Direct Growth)', schemeCode: '118473', category: 'ELSS (Tax Saver)', sipStatus: 'stopped', monthlySip: 0, invested: 19999, targetSnapshotValue: 52130, units: 291.343, currentNav: 178.93, navDate: 'Live AMFI', startDate: '2020-08-15', needsUnitCalibration: true },
+      { id: 'f11', name: 'Edelweiss Mid Cap Fund (Direct Growth)', schemeCode: '140228', category: 'Midcap Fund', sipStatus: 'stopped', monthlySip: 0, invested: 39998, targetSnapshotValue: 39921, units: 335.2171, currentNav: 119.09, navDate: 'Live AMFI', startDate: '2024-08-10', needsUnitCalibration: true },
       { id: 'f12', name: 'Aditya Birla Sun Life Liquid Fund (Direct Growth)', schemeCode: '119568', category: 'Debt / Liquid / Hybrid', sipStatus: 'stopped', monthlySip: 0, invested: 1001, targetSnapshotValue: 1186, units: 2.9650, currentNav: 400.00, navDate: 'Live AMFI', startDate: '2023-05-20', needsUnitCalibration: true }
     ];
 
@@ -1594,7 +1616,7 @@
       // 5. If active SIP sum is old 23000 default, calibrate to exact 15000 user monthly SIP
       const activeSipTotal = updated.reduce((s, f) => s + (f && f.sipStatus !== 'stopped' ? Number(f.monthlySip || 0) : 0), 0);
       if (activeSipTotal === 23000) {
-        const sipMap = { '119598': 3000, '122639': 3000, '118834': 2000, '119065': 2000, '118778': 2000, '120823': 1500, '119604': 1500 };
+        const sipMap = { '119598': 3000, '122639': 3000, '118834': 2000, '119065': 2000, '118778': 2000, '120823': 1500, '140228': 1500, '119604': 1500 };
         updated.forEach(f => {
           if (f && sipMap[f.schemeCode] !== undefined && f.sipStatus !== 'stopped') {
             f.monthlySip = sipMap[f.schemeCode];
@@ -1681,6 +1703,15 @@
     }
 
     function getFundCashflows(fund, now) {
+      const base = getFundCashflowsBase(fund, now), open = Number(fund.openingInvested) || 0;
+      const fT = transactions.filter(t => t.fundId === fund.id);
+      if (open > 1 && fT.length) {   // money invested before the imported statement period (date only approximate)
+        const first = new Date(Math.min(...fT.map(t => new Date(t.date))));
+        return syntheticFundCashflows(open, fund.startDate, first).concat(base);
+      }
+      return base;
+    }
+    function getFundCashflowsBase(fund, now) {
       const fTxns = transactions.filter(t => t.fundId === fund.id);
       if (fTxns.length > 0) {
         return fTxns.map(t => ({
@@ -1771,7 +1802,7 @@
         queries.push('SBI Large Cap Fund Direct Growth');
         queries.push('SBI Bluechip Fund Direct Growth');
       }
-      if (lower.includes('bandhan elss') || String(schemeCode) === '119609') {
+      if (lower.includes('bandhan elss') || String(schemeCode) === '118473') {
         queries.push('Bandhan ELSS Tax Saver Direct Growth');
       }
       return [...new Set(queries)];
@@ -1913,7 +1944,7 @@
         const alt = Object.keys(KNOWN_SCHEME_FALLBACKS)
           .filter(c => c !== String(fund.schemeCode) && norm(KNOWN_SCHEME_FALLBACKS[c].name).includes(core(fund.name)))
           .sort((x, y) => Number(/direct/i.test(KNOWN_SCHEME_FALLBACKS[y].name)) - Number(/direct/i.test(KNOWN_SCHEME_FALLBACKS[x].name)))[0];
-        if (alt) {
+        if (alt && transactions.some(t => t.fundId === fund.id)) {
           const r2 = await resolveSchemeLiveNAV(alt, KNOWN_SCHEME_FALLBACKS[alt].name);
           if (r2 && r2.source === 'live' && norm(r2.schemeName).includes(core(fund.name))) {
             fixedCodes.push(fund.name.split('(')[0].trim() + ' ' + fund.schemeCode + ' → ' + alt);
@@ -1922,8 +1953,8 @@
           }
         }
         const prev = Number(fund.currentNav);
-        if (prev > 0 && fund.navDate !== 'Verified NAV' && Math.abs(result.nav / prev - 1) > 0.15) { wrongCodes.push(fund.name.split('(')[0].trim()); return false; }
-        wrongCodes.push(fund.name.split('(')[0].trim());                     // applied, but flagged for review
+        if (prev > 0 && fund.navDate !== 'Verified NAV' && Math.abs(result.nav / prev - 1) > 0.15) { wrongCodes.push(fund.name.split('(')[0].trim() + ' → API: ' + result.schemeName); return false; }
+        wrongCodes.push(fund.name.split('(')[0].trim() + ' → API: ' + result.schemeName);   // applied, but flagged for review
         return apply(fund, result);
       };
 
@@ -3098,7 +3129,245 @@
       }
     }
 
-    function saveFundForm(e) {
+    const navHistoryCache = {};
+    const schemeNorm = n => String(n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const schemeCore = n => schemeNorm(String(n || '').toLowerCase().split('(')[0].replace(/\b(fund|direct|growth|plan|option)\b/g, ' '));
+    const isoDate = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+    // Full NAV history of a scheme from the AMFI-backed API (cached per session)
+    async function getNavHistory(code) {
+      code = String(code).trim();
+      if (navHistoryCache[code]) return navHistoryCache[code];
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 20000);
+      try {
+        const res = await fetch('https://api.mfapi.in/mf/' + encodeURIComponent(code), { signal: ctl.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const j = await res.json();
+        const list = (j.data || []).map(r => { const p = String(r.date).split('-'); return { t: new Date(+p[2], +p[1] - 1, +p[0]).getTime(), nav: parseFloat(r.nav), dateStr: r.date }; })
+          .filter(r => r.nav > 0 && !isNaN(r.t)).sort((a, b) => a.t - b.t);
+        if (!list.length) throw new Error('NO_DATA');
+        return (navHistoryCache[code] = { name: (j.meta && j.meta.scheme_name) || '', list });
+      } finally { clearTimeout(tm); }
+    }
+    // NAV applicable for a date: that day's NAV, or the next available business day
+    function navOnOrAfter(list, dateStr) {
+      const t = new Date(dateStr + 'T00:00:00').getTime();
+      return list.find(e => e.t >= t) || list[list.length - 1];
+    }
+    async function autoFillTxNav() {
+      const f = portfolio.find(x => x.id === document.getElementById('txFundSelect').value);
+      const date = document.getElementById('txDateInput').value;
+      if (!f || !f.schemeCode || !date) return;
+      try {
+        const h = await getNavHistory(f.schemeCode), e = navOnOrAfter(h.list, date);
+        if (e) { document.getElementById('txNavInput').value = e.nav; autoCalcTxUnits(); }
+      } catch (err) { /* offline: keep the NAV already in the field */ }
+    }
+    const baseOnTxFundChange = onTxFundChange;
+    onTxFundChange = function () { baseOnTxFundChange(); autoFillTxNav(); };
+
+    function toggleAutoHistory(on) {
+      ['formInvestedInput', 'formCurrentNavInput', 'formUnitsInput'].forEach(id => { document.getElementById(id).required = !on; });
+      document.getElementById('histFields').classList.toggle('hidden', !on);
+    }
+    const baseOpenFundModal = openFundModal;
+    openFundModal = function (id) {
+      baseOpenFundModal(id);
+      const isEdit = !!document.getElementById('editFundId').value;
+      document.getElementById('histBlock').classList.toggle('hidden', isEdit);
+      document.getElementById('formAutoHistory').checked = !isEdit;
+      toggleAutoHistory(!isEdit);
+    };
+
+    async function saveFundForm(e) {
+      e.preventDefault();
+      const code = document.getElementById('formSchemeCodeInput').value.trim();
+      const name = document.getElementById('formFundNameInput').value.trim();
+      const auto = !document.getElementById('editFundId').value && document.getElementById('formAutoHistory').checked;
+      const mr = currentLang === 'mr';
+      let hist = null;
+      try { if (code) hist = await getNavHistory(code); }
+      catch (err) {
+        if (auto) { showToast(mr ? 'NAV इतिहास मिळाला नाही. स्कीम कोड आणि इंटरनेट तपासा.' : 'Could not load NAV history. Check the scheme code and internet.', 'error'); return; }
+      }
+      const proceed = () => auto ? createFundWithHistory(hist) : saveFundFormCore({ preventDefault() {} });
+      if (hist && hist.name && !schemeNorm(hist.name).includes(schemeCore(name))) {
+        openConfirmDialog(mr ? 'स्कीम कोड जुळत नाही' : 'Scheme code does not match',
+          mr ? `या कोडवर AMFI मध्ये "${hist.name}" आहे, तुम्ही "${name}" लिहिले आहे. तरीही पुढे जायचे?` : `This code is "${hist.name}" in AMFI but you entered "${name}". Continue anyway?`, proceed);
+        return;
+      }
+      proceed();
+    }
+
+    // Builds the fund and its real transactions (units = amount / NAV on that date)
+    function createFundWithHistory(hist) {
+      const mr = currentLang === 'mr', g = id => document.getElementById(id);
+      const startStr = g('formStartDateInput').value, stopped = g('statusRadioStopped').checked;
+      const sipActive = parseFloat(g('formMonthlySipInput').value) || 0;
+      const sip = parseFloat(g('formHistSipInput').value) || sipActive;
+      const lump = parseFloat(g('formHistLumpInput').value) || 0;
+      const endStr = g('formEndDateInput').value;
+      if (!hist || !startStr || !(sip > 0 || lump > 0)) { showToast(mr ? 'सुरू तारीख आणि SIP/एकरकमी रक्कम टाका.' : 'Enter the start date and a SIP / lump-sum amount.', 'error'); return; }
+      if (stopped && sip > 0 && !endStr) { showToast(mr ? 'बंद SIP साठी शेवटचा हप्ता तारीख टाका.' : 'Enter the last SIP date for a stopped SIP.', 'error'); return; }
+      const id = 'fund_' + Date.now(), name = g('formFundNameInput').value.trim(), today = new Date();
+      const end = stopped ? new Date(endStr + 'T00:00:00') : today, st = new Date(startStr + 'T00:00:00'), txs = [];
+      const mk = (d, type, amt) => {
+        const e = navOnOrAfter(hist.list, isoDate(d));
+        txs.push({ id: 'tx_' + Date.now() + '_' + txs.length, fundId: id, fundName: name, type, date: isoDate(d), amount: amt, nav: e.nav, units: Number((amt / e.nav).toFixed(4)) });
+      };
+      if (lump > 0) mk(st, 'LUMP_SUM', lump);
+      if (sip > 0) for (let k = 0; k < 600; k++) {
+        const y = st.getFullYear(), m = st.getMonth() + k, d = new Date(y, m, Math.min(st.getDate(), new Date(y, m + 1, 0).getDate()));
+        if (d > end || d > today) break;
+        mk(d, 'SIP', sip);
+      }
+      if (!txs.length) { showToast(mr ? 'या तारखांमध्ये एकही हप्ता येत नाही.' : 'No installment falls in this period.', 'error'); return; }
+      const invested = txs.reduce((a, t) => a + t.amount, 0), units = txs.reduce((a, t) => a + t.units, 0), last = hist.list[hist.list.length - 1];
+      portfolio.push({ id, name, schemeCode: g('formSchemeCodeInput').value.trim(), category: g('formCategoryInput').value, sipStatus: stopped ? 'stopped' : 'active',
+        startDate: startStr, monthlySip: stopped ? 0 : (sipActive || sip), invested: Math.round(invested * 100) / 100, units: Number(units.toFixed(4)),
+        currentNav: last.nav, navDate: last.dateStr, needsUnitCalibration: false });
+      transactions.push(...txs);
+      saveDataToStorage(); closeFundModal(); renderAll();
+      showToast(mr ? `✅ ${txs.length} व्यवहार NAV इतिहासावरून नोंदवले • गुंतवणूक ${formatINR(invested)} • युनिट्स ${units.toFixed(3)}` : `✅ ${txs.length} transactions built from NAV history • invested ${formatINR(invested)} • units ${units.toFixed(3)}`, 'success');
+    }
+
+/* CAS-PARSE-START */
+    const CAS_MONTHS = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 };
+    function casDate(v) {
+      if (v instanceof Date && !isNaN(v)) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+      if (typeof v === 'number' && v > 20000) { const d = new Date(Math.round((v - 25569) * 864e5)); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); }
+      const m = String(v || '').trim().match(/^(\d{1,2})[-\/ ]([A-Za-z]{3,9}|\d{1,2})[-\/ ](\d{4})$/);
+      if (!m) return null;
+      const mon = isNaN(m[2]) ? CAS_MONTHS[m[2].slice(0, 3).toUpperCase()] : (+m[2] - 1);
+      return mon === undefined ? null : new Date(+m[3], mon, +m[1]);
+    }
+    const casIso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const casNum = v => { const n = parseFloat(String(v).replace(/,/g, '')); return isNaN(n) ? 0 : n; };
+    const casNorm = n => String(n || '').toLowerCase().replace(/&/g, ' and ').replace(/\(.*?\)/g, ' ').replace(/\b(fund|plan|option|growth|direct|regular)\b/g, ' ').replace(/[^a-z0-9]/g, '');
+    function casType(d) {
+      d = String(d || '').toLowerCase();
+      if (/redemption|redeem/.test(d)) return 'REDEMPTION';
+      if (/switch.?out/.test(d)) return 'SWITCH_OUT';
+      if (/switch.?in/.test(d)) return 'SWITCH_IN';
+      if (/sip|systematic|sys\./.test(d)) return 'SIP';
+      if (/purchase|investment|subscription/.test(d)) return 'LUMP_SUM';
+      return null;
+    }
+    function casCategory(n) {
+      n = n.toLowerCase();
+      if (/elss|tax/.test(n)) return 'ELSS (Tax Saver)';
+      if (/large.*(and|&).*mid/.test(n)) return 'Large & Midcap Fund';
+      if (/large/.test(n)) return 'Large Cap Fund';
+      if (/small/.test(n)) return 'Smallcap Fund';
+      if (/mid/.test(n)) return 'Midcap Fund';
+      if (/index|sensex|nifty/.test(n)) return 'Index Fund';
+      if (/liquid|debt|bond|gilt|hybrid|overnight|money/.test(n)) return 'Debt / Liquid / Hybrid';
+      return 'Flexi Cap / Multi Cap';
+    }
+    // Pure parser: rows of the two CAS sheets -> plan (no DOM, no state changes)
+    function buildCasPlan(pRows, tRows, funds) {
+      let from = null, to = null;
+      const headIdx = rows => rows.findIndex(r => String(r[0] || '').trim().toLowerCase() === 'scheme name');
+      pRows.concat(tRows).forEach(r => {
+        const k = String(r[0] || '').trim().toLowerCase();
+        if (k === 'from date') from = casDate(r[1]); if (k === 'to date') to = casDate(r[1]);
+      });
+      const pi = headIdx(pRows), ti = headIdx(tRows);
+      if (pi < 0 || ti < 0 || !from || !to) throw new Error('CAS_FORMAT');
+      const holdings = pRows.slice(pi + 1).filter(r => r[0] && casNum(r[7]) > 0.01 && casNum(r[4]) >= 1 && !/regular/i.test(String(r[0])))
+        .map(r => ({ name: String(r[0]).trim(), folio: String(r[3] || ''), invested: casNum(r[4]), value: casNum(r[5]), units: casNum(r[7]) }));
+      const txAll = tRows.slice(ti + 1).filter(r => r[0] && casDate(r[2])).map(r => ({ name: String(r[0]).trim().toLowerCase(), desc: String(r[1] || ''), date: casDate(r[2]), nav: casNum(r[3]), units: casNum(r[4]), amount: casNum(r[5]) }));
+      const items = holdings.map(h => {
+        const mine = txAll.filter(t => t.name === h.name.toLowerCase()).sort((a, b) => a.date - b.date);
+        const cancels = mine.filter(t => /cancel/i.test(t.desc) || !(t.amount > 0));
+        const txs = mine.filter(t => t.amount > 0 && !/cancel/i.test(t.desc)).map(t => ({ ...t, type: casType(t.desc) })).filter(t => t.type);
+        const buys = txs.filter(t => ['SIP', 'LUMP_SUM', 'SWITCH_IN'].includes(t.type)).reduce((a, t) => a + t.amount, 0);
+        const outs = txs.filter(t => ['REDEMPTION', 'SWITCH_OUT'].includes(t.type)).reduce((a, t) => a + t.amount, 0);
+        const sips = txs.filter(t => t.type === 'SIP'), last = sips[sips.length - 1];
+        const stopped = !last || cancels.some(c => c.date > last.date) || (to - last.date) / 864e5 > 75;
+        let startDate = '';
+        if (sips.length) {
+          const n = (String(sips[0].desc).match(/instal+ment no\s*-\s*(\d+)\//i) || [])[1];
+          const d0 = new Date(sips[0].date); if (n) d0.setMonth(d0.getMonth() - (+n - 1));
+          if (n) startDate = casIso(d0);
+        }
+        const a = casNorm(h.name), match = funds.find(f => { const b = casNorm(f.name); return a && b && (a.includes(b) || b.includes(a)); });
+        return { h, txs, stopped, sip: stopped ? 0 : Math.round(last.amount / 10) * 10, opening: Math.max(0, Math.round((h.invested - buys + outs) * 100) / 100), startDate, matchId: match ? match.id : null };
+      });
+      return { from, to, items };
+    }
+    /* CAS-PARSE-END */
+    function loadXlsx() {
+      return new Promise((resolve, reject) => {
+        if (window.XLSX) return resolve();
+        const sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        sc.onload = () => resolve(); sc.onerror = () => reject(new Error('OFFLINE'));
+        document.head.appendChild(sc);
+      });
+    }
+    async function casFindCode(name) {
+      try {
+        const q = name.replace(/\(.*?\)/g, ' ').replace(/[-–]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 4).join(' ');
+        const list = await (await fetch('https://api.mfapi.in/mf/search?q=' + encodeURIComponent(q))).json();
+        const a = casNorm(name);
+        const hit = list.find(x => /direct/i.test(x.schemeName) && /growth/i.test(x.schemeName) && !/idcw|dividend/i.test(x.schemeName) && (casNorm(x.schemeName).includes(a) || a.includes(casNorm(x.schemeName))));
+        return hit ? String(hit.schemeCode) : '';
+      } catch (e) { return ''; }
+    }
+    async function importCasFile(file) {
+      if (!file) return;
+      const mr = currentLang === 'mr', st = document.getElementById('casStatus');
+      try {
+        st.textContent = mr ? 'फाईल वाचत आहे…' : 'Reading file…';
+        await loadXlsx();
+        const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+        const sh = k => wb.Sheets[wb.SheetNames.find(n => n.toLowerCase().includes(k))];
+        if (!sh('portfolio') || !sh('transaction')) throw new Error('CAS_FORMAT');
+        const rows = ws => XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+        const plan = buildCasPlan(rows(sh('portfolio')), rows(sh('transaction')), portfolio);
+        if (!plan.items.length) throw new Error('CAS_FORMAT');
+        const nTx = plan.items.reduce((a, i) => a + i.txs.length, 0), nNew = plan.items.filter(i => !i.matchId).length;
+        const per = d => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        st.textContent = '';
+        openConfirmDialog(mr ? 'CAS इम्पोर्ट करायचा?' : 'Import this CAS?',
+          mr ? `कालावधी ${per(plan.from)} – ${per(plan.to)}. ${plan.items.length} फंड (${nNew} नवीन), ${nTx} व्यवहार. युनिट्स आणि गुंतवणूक CAS प्रमाणे बदलतील; SIP स्थिती व्यवहारांवरून ठरेल. आधीचा डेटा सुरक्षा-प्रत म्हणून फोनमध्ये जतन होईल.` : `Period ${per(plan.from)} – ${per(plan.to)}. ${plan.items.length} funds (${nNew} new), ${nTx} transactions. Units and invested amounts will follow the CAS; SIP status is derived from transactions. Your current data is kept as a safety copy on this phone.`,
+          () => applyCasPlan(plan));
+      } catch (e) {
+        st.textContent = '';
+        showToast(String(e.message) === 'OFFLINE' ? (mr ? 'इंटरनेट नाही; Excel वाचन-साधन लोड झाले नाही.' : 'No internet; could not load the Excel reader.') : (mr ? 'ही फाईल ओळखता आली नाही. “Detailed” CAS (.xlsx) निवडा.' : 'Could not read this file. Choose a “Detailed” CAS (.xlsx).'), 'error');
+      }
+    }
+    async function applyCasPlan(plan) {
+      const mr = currentLang === 'mr', skipped = [];
+      try { localStorage.setItem('mf_pre_cas_backup', JSON.stringify({ at: new Date().toISOString(), portfolio, transactions })); } catch (e) {}
+      const fromIso = casIso(plan.from), toStr = String(plan.to.getDate()).padStart(2, '0') + '-' + String(plan.to.getMonth() + 1).padStart(2, '0') + '-' + plan.to.getFullYear();
+      let added = 0, updated = 0, nTx = 0;
+      for (const it of plan.items) {
+        const h = it.h;
+        let f = portfolio.find(x => x.id === it.matchId);
+        if (!f) {
+          const code = await casFindCode(h.name);
+          if (!code) { skipped.push(h.name); continue; }
+          f = { id: 'fund_' + Date.now() + '_' + added, name: h.name.replace(/\s+/g, ' ').trim(), schemeCode: code, category: casCategory(h.name), startDate: '', monthlySip: 0, sipStatus: 'active', invested: 0, units: 0, currentNav: 0, navDate: '' };
+          portfolio.push(f); added++;
+        } else updated++;
+        transactions = transactions.filter(t => !(t.fundId === f.id && t.date >= fromIso));
+        it.txs.forEach((t, i) => transactions.push({ id: 'tx_cas_' + Date.now() + '_' + f.id + '_' + i, fundId: f.id, fundName: f.name, type: t.type, date: casIso(t.date), amount: Math.abs(t.amount), nav: t.nav, units: t.units }));
+        nTx += it.txs.length;
+        f.units = h.units; f.invested = h.invested; f.openingInvested = it.opening;
+        f.currentNav = h.units > 0 ? Number((h.value / h.units).toFixed(4)) : f.currentNav; f.navDate = toStr;
+        f.needsUnitCalibration = false; f.folio = h.folio;
+        if (!f.startDate && it.startDate) f.startDate = it.startDate;
+        f.sipStatus = it.stopped ? 'stopped' : 'active'; f.monthlySip = it.sip;
+      }
+      saveDataToStorage(); renderAll();
+      const msg = mr ? `✅ CAS इम्पोर्ट झाला: ${updated} अपडेट, ${added} नवीन फंड, ${nTx} व्यवहार.` : `✅ CAS imported: ${updated} updated, ${added} new funds, ${nTx} transactions.`;
+      showToast(msg, 'success');
+      if (skipped.length) showToast((mr ? '⚠ स्कीम कोड सापडला नाही, हे फंड जोडले नाहीत (हाताने जोडा): ' : '⚠ Scheme code not found, not added (add manually): ') + skipped.join(', '), 'error');
+    }
+
+    function saveFundFormCore(e) {
       e.preventDefault();
       const editId = document.getElementById('editFundId').value;
       const isStopped = document.getElementById('statusRadioStopped').checked;
