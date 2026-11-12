@@ -1880,34 +1880,83 @@
       }
       const syncIcon = document.getElementById('syncIcon');
       if (syncIcon) syncIcon.classList.add('fa-spin');
-      let updatedCount = 0;
+      const mr = currentLang === 'mr';
+      const firstWord = n => (String(n || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().split(/\s+/)[0]) || '';
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-      // Process in small batches of 4 to avoid mobile connection drops (ensures 12/12 sync)
+      // Apply a NAV only when it is a real API value from the RIGHT scheme.
+      // - built-in "verified" fallback NAVs are stale: never applied, never counted as Live
+      // - the scheme name returned by the API must match the fund (e.g. "Axis Large Cap" must not accept "Axis Large & Mid Cap")
+      // - a wrong scheme code is auto-corrected from the built-in code list when a matching live scheme exists
+      const norm = n => String(n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const core = n => norm(String(n || '').toLowerCase().split('(')[0].replace(/\b(fund|direct|growth|plan|option)\b/g, ' '));
+      const fixedCodes = [], wrongCodes = [];
+      const apply = (fund, result) => {
+        if (fund.needsUnitCalibration && fund.targetSnapshotValue > 0) {
+          fund.units = Number((fund.targetSnapshotValue / result.nav).toFixed(4));
+          fund.needsUnitCalibration = false;
+        }
+        fund.currentNav = result.nav;
+        fund.navDate = result.date || 'Live';
+        return true;
+      };
+      const tryFund = async (fund) => {
+        const result = await resolveSchemeLiveNAV(fund.schemeCode, fund.name);
+        if (!result || !(result.nav > 0) || result.source === 'fallback') return false;
+        const matches = norm(result.schemeName).includes(core(fund.name));
+        if (result.source === 'auto-search' && !matches) return false;      // never switch to a different scheme silently
+        if (matches) {
+          if (result.source === 'auto-search' && result.schemeCode) fund.schemeCode = result.schemeCode;
+          return apply(fund, result);
+        }
+        // Live NAV came from a scheme whose name does not match this fund -> probably a wrong scheme code
+        const alt = Object.keys(KNOWN_SCHEME_FALLBACKS)
+          .filter(c => c !== String(fund.schemeCode) && norm(KNOWN_SCHEME_FALLBACKS[c].name).includes(core(fund.name)))
+          .sort((x, y) => Number(/direct/i.test(KNOWN_SCHEME_FALLBACKS[y].name)) - Number(/direct/i.test(KNOWN_SCHEME_FALLBACKS[x].name)))[0];
+        if (alt) {
+          const r2 = await resolveSchemeLiveNAV(alt, KNOWN_SCHEME_FALLBACKS[alt].name);
+          if (r2 && r2.source === 'live' && norm(r2.schemeName).includes(core(fund.name))) {
+            fixedCodes.push(fund.name.split('(')[0].trim() + ' ' + fund.schemeCode + ' → ' + alt);
+            fund.schemeCode = alt;
+            return apply(fund, r2);
+          }
+        }
+        const prev = Number(fund.currentNav);
+        if (prev > 0 && fund.navDate !== 'Verified NAV' && Math.abs(result.nav / prev - 1) > 0.15) { wrongCodes.push(fund.name.split('(')[0].trim()); return false; }
+        wrongCodes.push(fund.name.split('(')[0].trim());                     // applied, but flagged for review
+        return apply(fund, result);
+      };
+
+      // Small batches (mobile friendly); then retry the failed ones one by one
+      let failed = [];
       const batchSize = 4;
       for (let i = 0; i < portfolio.length; i += batchSize) {
         const batch = portfolio.slice(i, i + batchSize);
-        await Promise.all(batch.map(async (fund) => {
-          const result = await resolveSchemeLiveNAV(fund.schemeCode, fund.name);
-          if (result && result.nav > 0) {
-            if (fund.needsUnitCalibration && fund.targetSnapshotValue > 0) {
-              fund.units = Number((fund.targetSnapshotValue / result.nav).toFixed(4));
-              fund.needsUnitCalibration = false;
-            }
-            fund.currentNav = result.nav;
-            fund.navDate = result.date || 'Live';
-            if (result.schemeCode) fund.schemeCode = result.schemeCode;
-            updatedCount++;
-          }
-        }));
+        const res = await Promise.all(batch.map(async f => [f, await tryFund(f)]));
+        res.forEach(([f, ok]) => { if (!ok) failed.push(f); });
       }
+      for (let attempt = 0; attempt < 2 && failed.length; attempt++) {
+        await sleep(800);
+        const still = [];
+        for (const f of failed) { if (!(await tryFund(f))) still.push(f); }
+        failed = still;
+      }
+      const updatedCount = portfolio.length - failed.length;
 
       if (syncIcon) syncIcon.classList.remove('fa-spin');
       document.getElementById('lastSyncTimestamp').textContent =
-        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ` (${updatedCount}/${portfolio.length} Live)`;
+        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ` (${updatedCount}/${portfolio.length} Live${failed.length ? ' ⚠' : ''})`;
       saveDataToStorage();
       renderAll();
+      if (fixedCodes.length) showToast((mr ? '🔧 चुकीचा स्कीम कोड दुरुस्त केला: ' : '🔧 Wrong scheme code corrected: ') + fixedCodes.join(', '), 'success');
+      if (wrongCodes.length) showToast((mr ? '⚠ स्कीम कोड तपासा (API वरील योजनेचे नाव जुळत नाही): ' : '⚠ Check scheme code (API scheme name does not match): ') + wrongCodes.join(', '), 'error');
       if (!silent) {
-        showToast(currentLang === 'mr' ? `✅ ${updatedCount}/${portfolio.length} फंडांचा ताजा NAV अपडेट झाला!` : `✅ Updated Live NAV for ${updatedCount}/${portfolio.length} funds!`, 'success');
+        if (!failed.length) {
+          showToast(mr ? `✅ ${updatedCount}/${portfolio.length} फंडांचा ताजा NAV अपडेट झाला!` : `✅ Updated latest NAV for ${updatedCount}/${portfolio.length} funds!`, 'success');
+        } else {
+          const names = failed.map(f => f.name.split('(')[0].trim()).join(', ');
+          showToast(mr ? `⚠ ${updatedCount}/${portfolio.length} अपडेट झाले. या फंडचा NAV मिळाला नाही, जुना NAV ठेवला: ${names}` : `⚠ ${updatedCount}/${portfolio.length} updated. NAV not received, last NAV kept: ${names}`, 'error');
+        }
       }
     }
 
