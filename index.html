@@ -3852,18 +3852,40 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res;
     }
-    async function driveFolder() {
-      const q = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='" + DRIVE_FOLDER + "' and trashed=false");
-      const found = ((await (await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&pageSize=1`)).json()).files || []);
-      if (found.length) return (driveFolderId = found[0].id);
-      const c = await gfetch('https://www.googleapis.com/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: DRIVE_FOLDER, mimeType: 'application/vnd.google-apps.folder' }) });
-      return (driveFolderId = (await c.json()).id);
+    // One backup folder only: remember its id, verify it by id (always up to date), and search by name only as a fallback.
+    // Search results can lag right after creation, which used to cause a second folder with the same name.
+    let driveFolderPromise = null, driveFolderIds = [];
+    function driveFolder() {
+      if (!driveFolderPromise) driveFolderPromise = (async () => {
+        const key = 'mf_gdrive_folder_' + (localStorage.getItem(DRIVE_EMAIL_KEY) || '');
+        const cached = localStorage.getItem(key);
+        let valid = null;
+        if (cached) {
+          try { const j = await (await gfetch(`https://www.googleapis.com/drive/v3/files/${cached}?fields=id,trashed`)).json(); if (!j.trashed) valid = cached; } catch (e) { /* deleted or another account */ }
+        }
+        const q = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='" + DRIVE_FOLDER + "' and trashed=false");
+        const found = ((await (await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime&fields=files(id)&pageSize=10`)).json()).files || []).map(f => f.id);
+        let id = valid || found[0];
+        if (!id) {
+          const c = await gfetch('https://www.googleapis.com/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: DRIVE_FOLDER, mimeType: 'application/vnd.google-apps.folder' }) });
+          id = (await c.json()).id;
+        }
+        localStorage.setItem(key, id);
+        driveFolderIds = Array.from(new Set([id, ...found]));     // also read backups from any older duplicate folder
+        return (driveFolderId = id);
+      })().finally(() => { driveFolderPromise = null; });
+      return driveFolderPromise;
     }
     async function driveList() {
-      const id = await driveFolder();
-      const q = encodeURIComponent(`'${id}' in parents and trashed=false`);
-      const r = await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=100&fields=files(id,name,modifiedTime)`);
+      await driveFolder();
+      const q = encodeURIComponent('(' + driveFolderIds.map(i => `'${i}' in parents`).join(' or ') + ') and trashed=false');
+      const r = await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=100&fields=files(id,name,modifiedTime,parents)`);
       return (await r.json()).files || [];
+    }
+    function dedupeBackups(files) {
+      const best = {};
+      files.forEach(f => { if (!best[f.name] || f.modifiedTime > best[f.name].modifiedTime) best[f.name] = f; });
+      return Object.values(best);
     }
     function driveUpsert(name, content, existing) {
       const b = 'sipb' + Date.now() + Math.random().toString(36).slice(2);
@@ -3880,14 +3902,16 @@
       return tr('Drive त्रुटी: ', 'Drive error: ') + m;
     }
 
-    async function driveBackup() {
+    let driveBusy = false;
+    async function driveBackup() { if (driveBusy) return; driveBusy = true; try { await driveBackupRun(); } finally { driveBusy = false; } }
+    async function driveBackupRun() {
       if (!portfolio.length) { showToast(tr('पोर्टफोलिओ रिकामा आहे; बॅकअप थांबवला.', 'Portfolio is empty; backup stopped.'), 'error'); return; }
       try {
         setDriveStatus(tr('बॅकअप सुरू आहे…', 'Backing up…'));
         const hash = hashStr(JSON.stringify({ portfolio, transactions }));
         await driveAuth();
         const files = await driveList();
-        const find = n => files.find(f => f.name === n);
+        const find = n => files.find(f => f.name === n && (f.parents || []).includes(driveFolderId));   // prefer the main folder
         if (hash === localStorage.getItem(DRIVE_HASH_KEY) && find('sip-latest.json')) {
           renderDriveCard();
           showToast(tr('कोणताही बदल नाही; Drive बॅकअप आधीच अद्ययावत आहे.', 'No changes; Drive backup is already up to date.'), 'success');
@@ -3917,7 +3941,7 @@
       try {
         setDriveStatus(tr('यादी मिळवत आहे…', 'Loading list…'));
         await driveAuth();
-        const files = (await driveList()).filter(f => /^sip-(latest|\d{4}-\d{2}-\d{2})\.json$/.test(f.name))
+        const files = dedupeBackups(await driveList()).filter(f => /^sip-(latest|\d{4}-\d{2}-\d{2})\.json$/.test(f.name))
           .sort((a, b) => (a.name === 'sip-latest.json' ? -1 : b.name === 'sip-latest.json' ? 1 : b.name.localeCompare(a.name)));
         renderDriveCard();
         if (!files.length) { box.textContent = tr('Drive मध्ये बॅकअप सापडला नाही.', 'No backup found in Drive.'); return; }
