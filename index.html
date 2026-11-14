@@ -1722,28 +1722,41 @@
       return syntheticFundCashflows(Number(fund.invested), fund.startDate, now);
     }
 
+    // XIRR is shown only when it is meaningful: real start information, at least 1 year of history, and a sane result.
+    // Otherwise NaN is returned and the UI shows "—" (annualising a few months, or guessing a start date, gives absurd values).
+    const fmtPct = (v, d = 1) => isFinite(v) ? v.toFixed(d) + '%' : '—';
+    const fmtNum = (v, d = 2) => isFinite(v) ? v.toFixed(d) : '';
+    const xv = v => isFinite(v) ? v : -1e9;
+    const xirrSane = x => isFinite(x) && x < 200 && x > -90;
+    function xirrBasisOk(fund) {
+      const hasTx = transactions.some(t => t.fundId === fund.id), open = Number(fund.openingInvested) || 0;
+      if (hasTx && open <= 1) return true;                       // full transaction history
+      return !!fund.startDate && !isNaN(new Date(fund.startDate).getTime());   // otherwise we need a real start date
+    }
     function computeFundXIRR(fund) {
       const currentVal = fund.units * fund.currentNav;
-      if (!(fund.invested > 0) || !(currentVal > 0)) return 0;
-      const now = new Date();
-      const cf = getFundCashflows(fund, now);
+      if (!(fund.invested > 0) || !(currentVal > 0) || !xirrBasisOk(fund)) return NaN;
+      const now = new Date(), cf = getFundCashflows(fund, now);
+      if (!cf.length || (now - Math.min(...cf.map(c => c.date))) / 864e5 < 365) return NaN;
       cf.push({ amount: currentVal, date: now });
-      return solveXIRR(cf) * 100;
+      const x = solveXIRR(cf) * 100;
+      return xirrSane(x) ? x : NaN;
     }
-
     function computePortfolioXIRR() {
       const now = new Date();
-      let cf = [], cur = 0;
+      let cf = [], cur = 0, n = 0;
       portfolio.forEach(f => {
-        cur += f.units * f.currentNav;
-        if (f.invested > 0) cf = cf.concat(getFundCashflows(f, now));
+        const v = f.units * f.currentNav;
+        if (f.invested > 0 && v > 0 && xirrBasisOk(f)) { cf = cf.concat(getFundCashflows(f, now)); cur += v; n++; }
       });
-      if (!cf.length || !(cur > 0)) return 0;
+      window.xirrCover = n;
+      if (!n || !cf.length) return NaN;
       cf.sort((a, b) => a.date - b.date);
+      if ((now - cf[0].date) / 864e5 < 365) return NaN;
       cf.push({ amount: cur, date: now });
-      return solveXIRR(cf) * 100;
+      const x = solveXIRR(cf) * 100;
+      return xirrSane(x) ? x : NaN;
     }
-
     function solveXIRR(cf) {
       const t0 = cf[0].date;
       const npv = r => cf.reduce((sum, c) => sum + c.amount / Math.pow(1 + r, (c.date - t0) / 31557600000), 0);
@@ -2022,7 +2035,7 @@
       gainEl.className = `text-lg sm:text-xl font-extrabold mt-1.5 ${totalGain >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
       document.getElementById('kpiAbsolutePct').textContent = (totalGain >= 0 ? '+' : '') + absReturn.toFixed(2) + '%';
 
-      document.getElementById('kpiPortfolioXirr').textContent = (xirr >= 0 ? '+' : '') + xirr.toFixed(2) + '%';
+      document.getElementById('kpiPortfolioXirr').textContent = (xirr >= 0 ? '+' : '') + fmtPct(xirr,2);
       document.getElementById('kpiMonthlySip').textContent = formatINR(totalMonthlySip);
       document.getElementById('kpiYearlySip').textContent = formatINR(totalMonthlySip * 12) + (currentLang === 'mr' ? ' / वर्ष' : ' / yr');
 
@@ -2032,7 +2045,7 @@
       document.getElementById('heroGainPct').textContent = (totalGain >= 0 ? '+' : '') + absReturn.toFixed(2) + '%';
       document.getElementById('heroInvestedVal').textContent = formatINR(totalInvested);
       document.getElementById('heroSipVal').textContent = formatINR(totalMonthlySip);
-      document.getElementById('heroXirrVal').textContent = (xirr >= 0 ? '+' : '') + xirr.toFixed(1) + '%';
+      document.getElementById('heroXirrVal').textContent = (xirr >= 0 ? '+' : '') + fmtPct(xirr,1);
 
       document.getElementById('healthActiveCount').textContent = activeCount;
       document.getElementById('healthHoldCount').textContent = stoppedCount;
@@ -2134,7 +2147,7 @@
             <td class="py-3 px-3 text-right font-bold text-indigo-600 dark:text-indigo-400">₹${Number(fund.currentNav).toFixed(2)}</td>
             <td class="py-3 px-3 text-right font-extrabold">${formatINR(currentVal)}</td>
             <td class="py-3 px-3 text-right"><div class="font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${profit >= 0 ? '+' : ''}${formatINR(profit)}</div><div class="text-[10px] ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${profit >= 0 ? '+' : ''}${absPct.toFixed(2)}%</div></td>
-            <td class="py-3 px-3 text-right"><span class="px-2 py-0.5 rounded font-bold text-xs bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300">${xirr >= 0 ? '+' : ''}${xirr.toFixed(1)}%</span></td>
+            <td class="py-3 px-3 text-right"><span class="px-2 py-0.5 rounded font-bold text-xs bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300">${xirr >= 0 ? '+' : ''}${fmtPct(xirr,1)}</span></td>
             <td class="py-3 px-4 text-center">
               <div class="inline-flex items-center gap-1">
                 <button onclick="openFundModal('${fund.id}')" class="px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 font-bold text-xs cursor-pointer"><i class="fa-solid fa-pen"></i></button>
@@ -2165,7 +2178,7 @@
                 <h4 class="font-extrabold text-sm mt-1.5">${escapeHtml(fund.name)}</h4>
                 <span class="text-[11px] text-slate-500">लाईव्ह NAV: ₹${Number(fund.currentNav).toFixed(2)} • युनिट्स: ${Number(fund.units).toFixed(2)}</span>
               </div>
-              <span class="font-extrabold text-xs px-2 py-1 rounded bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 shrink-0">XIRR: ${xirr.toFixed(1)}%</span>
+              <span class="font-extrabold text-xs px-2 py-1 rounded bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 shrink-0">XIRR: ${fmtPct(xirr,1)}</span>
             </div>
             <div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl text-center">
               <div><span class="text-[10px] text-slate-500 block">गुंतवणूक</span><span class="font-bold text-xs">${formatINR(fund.invested)}</span></div>
@@ -2381,7 +2394,7 @@
       enriched.sort((a, b) => {
         if (activeRankingSort === 'abs') return b.absPct - a.absPct;
         if (activeRankingSort === 'gain') return b.gain - a.gain;
-        return b.xirr - a.xirr;
+        return xv(b.xirr) - xv(a.xirr);
       });
 
       if (headerLbl) {
@@ -2412,7 +2425,7 @@
             <div class="pt-2 border-t border-black/5 dark:border-white/5 flex items-baseline justify-between">
               <div>
                 <span class="text-[10px] text-slate-500 block">XIRR</span>
-                <strong class="text-sm font-black text-emerald-600">${f.xirr >= 0 ? '+' : ''}${f.xirr.toFixed(1)}%</strong>
+                <strong class="text-sm font-black text-emerald-600">${f.xirr >= 0 ? '+' : ''}${fmtPct(f.xirr,1)}</strong>
               </div>
               <div class="text-right">
                 <span class="text-[10px] text-slate-500 block">${currentLang === 'mr' ? 'नफा' : 'Gain'}</span>
@@ -2428,7 +2441,7 @@
       if (laggardsEl) {
         if (laggards.length > 0) {
           laggardsEl.classList.remove('hidden');
-          const names = laggards.map(l => `<strong>${escapeHtml(l.name.split('(')[0].trim())}</strong> (XIRR: ${l.xirr.toFixed(1)}%, नफा: ${l.gain >= 0 ? '+' : ''}${formatINR(l.gain)})`).join(' • ');
+          const names = laggards.map(l => `<strong>${escapeHtml(l.name.split('(')[0].trim())}</strong> (XIRR: ${fmtPct(l.xirr,1)}, नफा: ${l.gain >= 0 ? '+' : ''}${formatINR(l.gain)})`).join(' • ');
           laggardsEl.innerHTML = `
             <div class="font-extrabold text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
               <i class="fa-solid fa-triangle-exclamation"></i>
@@ -2468,7 +2481,7 @@
                   ${activeRankingSort === 'gain' ? ((f.gain >= 0 ? '+' : '') + formatINR(f.gain)) : ((metricVal >= 0 ? '+' : '') + metricVal.toFixed(1) + '%')}
                 </div>
                 <div class="text-[10px] text-slate-500">
-                  XIRR: ${f.xirr.toFixed(1)}% • नफा: ${f.absPct.toFixed(1)}%
+                  XIRR: ${fmtPct(f.xirr,1)} • नफा: ${f.absPct.toFixed(1)}%
                 </div>
               </div>
             </div>
@@ -2810,10 +2823,10 @@
 
       const top3 = [...portfolio]
         .map(f => ({ name: f.name.split('(')[0].trim(), val: f.units * f.currentNav, xirr: computeFundXIRR(f) }))
-        .sort((a, b) => b.xirr - a.xirr)
+        .sort((a, b) => xv(b.xirr) - xv(a.xirr))
         .slice(0, 3);
 
-      const topLines = top3.map((t, i) => `${i + 1}. ${t.name} (${formatINR(t.val)} | XIRR: +${t.xirr.toFixed(1)}%)`).join('\n');
+      const topLines = top3.map((t, i) => `${i + 1}. ${t.name} (${formatINR(t.val)} | XIRR: ${isFinite(t.xirr) ? '+' : ''}${fmtPct(t.xirr,1)})`).join('\n');
 
       return [
         `📊 *म्युच्युअल फंड पोर्टफोलिओ रिपोर्ट (${todayStr})*`,
@@ -2821,7 +2834,7 @@
         `💰 *एकूण गुंतवणूक:* ${formatINR(totalInvested)}`,
         `🏛️ *सध्याचे चालू मूल्य:* ${formatINR(totalCurrent)}`,
         `📈 *एकूण निव्वळ नफा:* ${netGain >= 0 ? '+' : ''}${formatINR(netGain)} (${netGain >= 0 ? '+' : ''}${absPct.toFixed(2)}%)`,
-        `⚡ *पोर्टफोलिओ XIRR:* +${xirr.toFixed(2)}% वार्षिक`,
+        `⚡ *पोर्टफोलिओ XIRR:* ${isFinite(xirr) ? '+' : ''}${fmtPct(xirr,2)} वार्षिक`,
         `🗓️ *सुरू मासिक SIP:* ${formatINR(totalSip)}/महिना (${activeCount} सुरू, ${holdCount} होल्ड)`,
         `━━━━━━━━━━━━━━━━━━━━`,
         `🏆 *टॉप परफॉर्मिंग फंड्स (XIRR नुसार):*`,
@@ -3740,7 +3753,7 @@
       const rows = [['Fund Name', 'Category', 'Status', 'Scheme Code', 'Monthly SIP', 'Invested', 'Units', 'Live NAV', 'Current Value', 'Profit', 'XIRR %']];
       portfolio.forEach(f => {
         const cur = f.units * f.currentNav;
-        rows.push([`"${f.name.replace(/"/g, '""')}"`, f.category, f.sipStatus, f.schemeCode, f.monthlySip, f.invested, f.units, f.currentNav, cur.toFixed(2), (cur - f.invested).toFixed(2), computeFundXIRR(f).toFixed(2)]);
+        rows.push([`"${f.name.replace(/"/g, '""')}"`, f.category, f.sipStatus, f.schemeCode, f.monthlySip, f.invested, f.units, f.currentNav, cur.toFixed(2), (cur - f.invested).toFixed(2), fmtNum(computeFundXIRR(f), 2)]);
       });
       const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
